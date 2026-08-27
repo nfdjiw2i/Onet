@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal Chat</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Auth Screen */
+        #auth-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: #000000;
+            z-index: 1000;
+        }
+
+        .auth-card {
+            border: 1px solid #ffffff;
+            padding: 40px;
+            width: 350px;
+            background-color: #000000;
+        }
+
+        .auth-card h2 {
+            margin-bottom: 25px;
+            text-align: center;
+            letter-spacing: 2px;
+            font-size: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+
+        .input-group input {
+            width: 100%;
+            background: #000000;
+            border: 1px solid #ffffff;
+            color: #ffffff;
+            padding: 10px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .auth-btn {
+            width: 100%;
+            background: #000000;
+            border: 1px solid #ffffff;
+            color: #ffffff;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            letter-spacing: 1px;
+            margin-top: 10px;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .auth-btn:hover {
+            background: #ffffff;
+            color: #000000;
+        }
+
+        .switch-auth {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        /* Main App Layout */
+        #app-screen {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Left Sidebar: Channels */
+        .sidebar-channels {
+            width: 240px;
+            border-right: 1px solid #ffffff;
+            display: flex;
+            flex-direction: column;
+            background-color: #000000;
+        }
+
+        .server-header {
+            padding: 20px;
+            border-bottom: 1px solid #ffffff;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .channels-list {
+            padding: 20px;
+            flex-grow: 1;
+        }
+
+        .channels-list h3 {
+            font-size: 12px;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            color: #888888;
+        }
+
+        .channel-item {
+            padding: 6px 0;
+            cursor: pointer;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+
+        .channel-item:hover, .channel-item.active {
+            text-decoration: underline;
+        }
+
+        .user-profile {
+            padding: 15px 20px;
+            border-top: 1px solid #ffffff;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logout-btn {
+            background: none;
+            border: 1px solid #ffffff;
+            color: #ffffff;
+            padding: 4px 8px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .logout-btn:hover {
+            background: #ffffff;
+            color: #000000;
+        }
+
+        /* Center Chat Area */
+        .chat-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #000000;
+        }
+
+        .chat-header {
+            padding: 20px;
+            border-bottom: 1px solid #ffffff;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .message .msg-user {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .message .msg-time {
+            font-size: 10px;
+            color: #888888;
+            margin-left: 10px;
+        }
+
+        .message .msg-text {
+            margin-top: 4px;
+            word-break: break-all;
+        }
+
+        .chat-input-area {
+            padding: 20px;
+            border-top: 1px solid #ffffff;
+        }
+
+        .chat-input-form {
+            display: flex;
+            border: 1px solid #ffffff;
+        }
+
+        .chat-input-form input {
+            flex-grow: 1;
+            background: #000000;
+            border: none;
+            color: #ffffff;
+            padding: 12px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .chat-input-form button {
+            background: #000000;
+            border-left: 1px solid #ffffff;
+            color: #ffffff;
+            padding: 0 20px;
+            cursor: pointer;
+            font-size: 14px;
+            letter-spacing: 1px;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .chat-input-form button:hover {
+            background: #ffffff;
+            color: #000000;
+        }
+
+        /* Right Sidebar: Members */
+        .sidebar-members {
+            width: 240px;
+            border-left: 1px solid #ffffff;
+            padding: 20px;
+            background-color: #000000;
+            overflow-y: auto;
+        }
+
+        .sidebar-members h3 {
+            font-size: 12px;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            color: #888888;
+        }
+
+        .member-item {
+            font-size: 14px;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Auth Screen -->
+    <div id="auth-screen">
+        <div class="auth-card">
+            <h2 id="auth-title">AUTHORIZATION</h2>
+            <form id="auth-form">
+                <div class="input-group">
+                    <label>USERNAME</label>
+                    <input type="text" id="username-input" required autocomplete="off">
+                </div>
+                <div class="input-group">
+                    <label>PASSWORD</label>
+                    <input type="password" id="password-input" required>
+                </div>
+                <button type="submit" class="auth-btn" id="auth-submit-btn">LOGIN</button>
+            </form>
+            <div class="switch-auth" id="switch-auth-mode">Need an account? Register</div>
+        </div>
+    </div>
+
+    <!-- Main App Screen -->
+    <div id="app-screen" class="hidden">
+        <!-- Left Sidebar -->
+        <div class="sidebar-channels">
+            <div class="server-header">MAIN SERVER</div>
+            <div class="channels-list">
+                <h3>TEXT CHANNELS</h3>
+                <div class="channel-item active"># general</div>
+            </div>
+            <div class="user-profile">
+                <span id="current-username-display">User</span>
+                <button class="logout-btn" id="logout-btn">LOGOUT</button>
+            </div>
+        </div>
+
+        <!-- Center Chat -->
+        <div class="chat-area">
+            <div class="chat-header"># general</div>
+            <div class="chat-messages" id="chat-messages">
+                <!-- Messages will load here -->
+            </div>
+            <div class="chat-input-area">
+                <form class="chat-input-form" id="chat-form">
+                    <input type="text" id="message-input" placeholder="Message #general" required autocomplete="off">
+                    <button type="submit">SEND</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="sidebar-members">
+            <h3>MEMBERS</h3>
+            <div id="members-list">
+                <!-- Members will load here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const FIREBASE_URL = "https://hgjghjgjhjdf-default-rtdb.firebaseio.com/";
+        const FIREBASE_TOKEN = "87skG4p2wFrEKahKAcCKdig9ouJuD1V1szanWP87";
+
+        let isRegistering = false;
+        let currentUser = localStorage.getItem('chat_user') || null;
+
+        const authScreen = document.getElementById('auth-screen');
+        const appScreen = document.getElementById('app-screen');
+        const authTitle = document.getElementById('auth-title');
+        const authSubmitBtn = document.getElementById('auth-submit-btn');
+        const switchAuthMode = document.getElementById('switch-auth-mode');
+        const authForm = document.getElementById('auth-form');
+        const usernameInput = document.getElementById('username-input');
+        const passwordInput = document.getElementById('password-input');
+        
+        const currentUsernameDisplay = document.getElementById('current-username-display');
+        const logoutBtn = document.getElementById('logout-btn');
+        
+        const chatForm = document.getElementById('chat-form');
+        const messageInput = document.getElementById('message-input');
+        const chatMessages = document.getElementById('chat-messages');
+        const membersList = document.getElementById('members-list');
+
+        if (currentUser) {
+            showApp();
+        }
+
+        switchAuthMode.addEventListener('click', () => {
+            isRegistering = !isRegistering;
+            if (isRegistering) {
+                authTitle.textContent = "REGISTRATION";
+                authSubmitBtn.textContent = "REGISTER";
+                switchAuthMode.textContent = "Already have an account? Login";
+            } else {
+                authTitle.textContent = "AUTHORIZATION";
+                authSubmitBtn.textContent = "LOGIN";
+                switchAuthMode.textContent = "Need an account? Register";
+            }
+        });
+
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+
+            if (!username || !password) return;
+
+            try {
+                const res = await fetch(`${FIREBASE_URL}/users.json?auth=${FIREBASE_TOKEN}`);
+                const users = await res.json() || {};
+
+                if (isRegistering) {
+                    if (users[username]) {
+                        alert("Username already exists.");
+                        return;
+                    }
+                    await fetch(`${FIREBASE_URL}/users/${username}.json?auth=${FIREBASE_TOKEN}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ password, joined: Date.now() })
+                    });
+                    alert("Registration successful. Logging in...");
+                } else {
+                    if (!users[username] || users[username].password !== password) {
+                        alert("Invalid username or password.");
+                        return;
+                    }
+                }
+
+                currentUser = username;
+                localStorage.setItem('chat_user', currentUser);
+                showApp();
+            } catch (err) {
+                console.error(err);
+                alert("Connection error.");
+            }
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('chat_user');
+            currentUser = null;
+            appScreen.classList.add('hidden');
+            authScreen.classList.remove('hidden');
+            usernameInput.value = '';
+            passwordInput.value = '';
+        });
+
+        function showApp() {
+            authScreen.classList.add('hidden');
+            appScreen.classList.remove('hidden');
+            currentUsernameDisplay.textContent = currentUser;
+            
+            fetch(`${FIREBASE_URL}/presence/${currentUser}.json?auth=${FIREBASE_TOKEN}`, {
+                method: 'PUT',
+                body: JSON.stringify(true)
+            });
+
+            startPolling();
+        }
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = messageInput.value.trim();
+            if (!text || !currentUser) return;
+
+            const msgData = {
+                user: currentUser,
+                text: text,
+                time: Date.now()
+            };
+
+            try {
+                await fetch(`${FIREBASE_URL}/messages.json?auth=${FIREBASE_TOKEN}`, {
+                    method: 'POST',
+                    body: JSON.stringify(msgData)
+                });
+                messageInput.value = '';
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        function startPolling() {
+            fetchData();
+            setInterval(fetchData, 3000);
+        }
+
+        async function fetchData() {
+            try {
+                const msgRes = await fetch(`${FIREBASE_URL}/messages.json?auth=${FIREBASE_TOKEN}`);
+                const messages = await msgRes.json() || {};
+                
+                chatMessages.innerHTML = '';
+                const sortedMsgs = Object.values(messages).sort((a, b) => a.time - b.time);
+                sortedMsgs.forEach(msg => {
+                    const date = new Date(msg.time);
+                    const timeStr = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+                    
+                    const div = document.createElement('div');
+                    div.className = 'message';
+                    div.innerHTML = `
+                        <div><span class="msg-user">${escapeHtml(msg.user)}</span><span class="msg-time">${timeStr}</span></div>
+                        <div class="msg-text">${escapeHtml(msg.text)}</div>
+                    `;
+                    chatMessages.appendChild(div);
+                });
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                const userRes = await fetch(`${FIREBASE_URL}/users.json?auth=${FIREBASE_TOKEN}`);
+                const users = await userRes.json() || {};
+                
+                membersList.innerHTML = '';
+                Object.keys(users).forEach(username => {
+                    const mDiv = document.createElement('div');
+                    mDiv.className = 'member-item';
+                    mDiv.textContent = username;
+                    membersList.appendChild(mDiv);
+                });
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
