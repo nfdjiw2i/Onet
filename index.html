@@ -542,7 +542,7 @@ else{
 chatInputContainer.style.display='block';
 const msgRes=await fetch(`${FIREBASE_URL}/messages/${currentChannel}.json?auth=${FIREBASE_TOKEN}`);
 const messages=await msgRes.json()||{};
-// ИСПРАВЛЕНИЕ: Сортируем сообщения строго по времени (time), а не по id пуша в Firebase
+// Сортировка сообщений строго по времени (time), а не по ключам Firebase
 const msgEntries=Object.entries(messages).sort((a,b)=>(a[1].time||0)-(b[1].time||0));
 const newHash=JSON.stringify(msgEntries.map(e=>e[0]));
 if(newHash!==lastMessagesHash){
