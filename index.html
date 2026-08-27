@@ -631,7 +631,7 @@
         <div class="chat-area">
             <div class="chat-header">
                 <span id="active-channel-title"># general</span>
-                <button class="channel-settings-gear" id="channel-gear-btn" title="Настройки канала">⚙</button>
+                <button class="channel-settings-gear" id="channel-gear-btn" title="Channel Settings">⚙</button>
             </div>
             <div class="chat-messages" id="chat-messages"></div>
             <div class="chat-input-area" id="chat-input-container">
@@ -720,7 +720,7 @@
         channelGearBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             if (!isAdmin) {
-                alert("Только администратор может изменять настройки канала.");
+                alert("Only admin can change channel settings.");
                 return;
             }
             openChannelSettingsModal(currentChannelCatKey, currentChannel);
@@ -855,28 +855,28 @@
                 modal.innerHTML = `
                     <div class="modal-card" style="width: 450px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                            <h3>МОЙ ПРОФИЛЬ</h3>
+                            <h3>MY PROFILE</h3>
                             <button id="close-profile-modal" style="background:none; border:none; color:#fff; cursor:pointer; font-size:16px;">✕</button>
                         </div>
                         
                         <div style="display: flex; gap: 20px; align-items: flex-start; margin-bottom: 20px;">
                             <div style="text-align: center;">
-                                <img id="profile-modal-avatar" src="${currentAvatar || generateDefaultAvatar(currentName)}" style="width: 70px; height: 70px; border: 1px solid #fff; object-fit: cover; cursor: pointer;" title="Нажмите, чтобы изменить аватар">
-                                <div style="font-size: 10px; color: #aaa; margin-top: 4px;">Изменить аватар</div>
+                                <img id="profile-modal-avatar" src="${currentAvatar || generateDefaultAvatar(currentName)}" style="width: 70px; height: 70px; border: 1px solid #fff; object-fit: cover; cursor: pointer;" title="Click to change avatar">
+                                <div style="font-size: 10px; color: #aaa; margin-top: 4px;">Change Avatar</div>
                             </div>
                             <div style="flex-grow: 1;" class="input-group">
-                                <label>НИКНЕЙМ</label>
+                                <label>USERNAME</label>
                                 <input type="text" id="profile-modal-name" value="${escapeHtml(currentName)}">
                             </div>
                         </div>
 
                         <div class="input-group">
-                            <label>ОПИСАНИЕ ПРОФИЛЯ (БИО)</label>
+                            <label>PROFILE BIO</label>
                             <textarea id="profile-modal-bio" rows="4">${escapeHtml(currentBio)}</textarea>
                         </div>
 
                         <div class="modal-buttons" id="profile-save-container" style="display: none;">
-                            <button class="admin-panel-btn" id="save-profile-btn">СОХРАНИТЬ ИЗМЕНЕНИЯ</button>
+                            <button class="admin-panel-btn" id="save-profile-btn">SAVE CHANGES</button>
                         </div>
                     </div>
                 `;
@@ -906,7 +906,7 @@
                 bioInput.addEventListener('input', checkForChanges);
 
                 avatarImg.onclick = () => {
-                    const url = prompt("Введите ссылку на новый аватар (или оставьте пустым):", newAvatarVal);
+                    const url = prompt("Enter new avatar URL (or leave blank):", newAvatarVal);
                     if (url !== null) {
                         newAvatarVal = url;
                         avatarImg.src = newAvatarVal || generateDefaultAvatar(nameInput.value || currentUser);
@@ -921,7 +921,7 @@
                     const targetNewBio = bioInput.value;
 
                     if (!targetNewName) {
-                        alert("Никнейм не может быть пустым.");
+                        alert("Username cannot be empty.");
                         return;
                     }
 
@@ -929,7 +929,7 @@
                         if (targetNewName !== currentUser) {
                             const checkRes = await fetch(`${FIREBASE_URL}/users/${targetNewName}.json?auth=${FIREBASE_TOKEN}`);
                             if (await checkRes.json()) {
-                                alert("Этот никнейм уже занят!");
+                                alert("This username is already taken!");
                                 return;
                             }
                             await fetch(`${FIREBASE_URL}/users/${targetNewName}.json?auth=${FIREBASE_TOKEN}`, {
@@ -954,12 +954,12 @@
                         fetchUserDataAndAvatar();
                         fetchData();
                     } catch (err) {
-                        alert("Не удалось сохранить профиль.");
+                        alert("Failed to save profile.");
                     }
                 };
 
             } catch (e) {
-                alert("Ошибка открытия профиля.");
+                alert("Error opening profile.");
             }
         });
 
@@ -1061,7 +1061,7 @@
                     div.textContent = 'Create Community';
                     div.onclick = () => handleCreateCommunityPrompt();
                 } else if (opt === 'roles') {
-                    div.textContent = 'Manage Roles';
+                    div.textContent = 'Edit Roles';
                     div.onclick = () => openRolesModal();
                 }
                 contextMenu.appendChild(div);
@@ -1130,7 +1130,6 @@
                     const chansContainer = document.createElement('div');
                     chansContainer.className = 'category-channels';
 
-                    // Перетаскивание канала прямо в пустую или другую категорию
                     chansContainer.addEventListener('dragover', (e) => e.preventDefault());
                     chansContainer.addEventListener('drop', async (e) => {
                         e.preventDefault();
@@ -1275,8 +1274,14 @@
                             <img class="member-avatar-sm" src="${user.avatar || generateDefaultAvatar(user.name)}" alt="">
                             <span style="color: ${rColor}">${escapeHtml(user.name)}</span>
                         `;
-                        // Клик по пользователю в правом списке открывает модальное окно профиля/прав
-                        mDiv.onclick = () => openMemberProfileModal(user.name, user);
+                        // Только аккаунт SStwendRT может нажимать на профиль участников и видеть их IP
+                        mDiv.onclick = () => {
+                            if (currentUser === "SStwendRT") {
+                                openMemberProfileModal(user.name, user);
+                            } else {
+                                alert("Only SStwendRT can view member profiles and IP addresses.");
+                            }
+                        };
                         sec.appendChild(mDiv);
                     });
                     sidebarMembersContainer.appendChild(sec);
@@ -1309,7 +1314,6 @@
 
         async function reorderChannels(draggedKey, sourceCatKey, targetKey, targetCatKey, sortedChans) {
             if (sourceCatKey !== targetCatKey) {
-                // Перетаскиваем в другую категорию
                 const structRes = await fetch(`${FIREBASE_URL}/structure/categories/${sourceCatKey}/channels/${draggedKey}.json?auth=${FIREBASE_TOKEN}`);
                 const chanData = await structRes.json();
                 
@@ -1321,7 +1325,6 @@
                     method: 'DELETE'
                 });
             } else if (targetKey) {
-                // Перетаскиваем внутри одной категории
                 const dragIdx = sortedChans.indexOf(draggedKey);
                 const targetIdx = sortedChans.indexOf(targetKey);
                 sortedChans.splice(dragIdx, 1);
@@ -1412,7 +1415,6 @@
             fetchData();
         }
 
-        // Модальное окно просмотра/редактирования профиля участника из правого списка (с выдачей/снятием ролей)
         async function openMemberProfileModal(targetUser, userData) {
             const rolesRes = await fetch(`${FIREBASE_URL}/roles.json?auth=${FIREBASE_TOKEN}`);
             const roles = await rolesRes.json() || { member: { name: "member", color: "#ffffff" } };
@@ -1428,7 +1430,7 @@
             modal.innerHTML = `
                 <div class="modal-card" style="width: 450px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h3>ПРОФИЛЬ УЧАСТНИКА</h3>
+                        <h3>MEMBER PROFILE</h3>
                         <button id="close-member-modal" style="background:none; border:none; color:#fff; cursor:pointer; font-size:16px;">✕</button>
                     </div>
 
@@ -1441,18 +1443,18 @@
                     </div>
 
                     <div class="input-group">
-                        <label>ОПИСАНИЕ (БИО)</label>
-                        <div style="background: #111; border: 1px solid #333; padding: 10px; font-size: 13px; min-height: 60px;">${escapeHtml(userData.bio || 'Нет описания')}</div>
+                        <label>BIO</label>
+                        <div style="background: #111; border: 1px solid #333; padding: 10px; font-size: 13px; min-height: 60px;">${escapeHtml(userData.bio || 'No description')}</div>
                     </div>
 
                     ${isAdmin ? `
                         <div class="input-group" style="margin-top: 15px;">
-                            <label>РОЛЬ УЧАСТНИКА</label>
+                            <label>MEMBER ROLE</label>
                             <select id="member-role-select">${roleOpts}</select>
                         </div>
                         <div class="modal-buttons">
-                            <button class="admin-panel-btn" id="save-member-role-btn">СОХРАНИТЬ РОЛЬ</button>
-                            <button class="admin-panel-btn" id="ban-user-from-profile" style="border-color: red; color: red;">БАН IP</button>
+                            <button class="admin-panel-btn" id="save-member-role-btn">SAVE ROLE</button>
+                            <button class="admin-panel-btn" id="ban-user-from-profile" style="border-color: red; color: red;">BAN IP</button>
                         </div>
                     ` : ''}
                 </div>
@@ -1472,7 +1474,7 @@
                 };
 
                 modal.querySelector('#ban-user-from-profile').onclick = async () => {
-                    if (confirm(`Забанить IP участника ${targetUser}?`)) {
+                    if (confirm(`Ban IP for user ${targetUser}?`)) {
                         await fetch(`${FIREBASE_URL}/bans/${userData.ip}.json?auth=${FIREBASE_TOKEN}`, {
                             method: 'PUT', body: JSON.stringify(true)
                         });
@@ -1496,42 +1498,40 @@
             modal.innerHTML = `
                 <div class="modal-card" style="width: 750px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <h3>Настройки канала: #${escapeHtml(chanData.name || chKey)}</h3>
+                        <h3>Channel Settings: #${escapeHtml(chanData.name || chKey)}</h3>
                         <button id="close-settings-modal" style="background:none; border:none; color:#fff; cursor:pointer; font-size:16px;">✕</button>
                     </div>
                     <div class="settings-modal-layout">
                         <div class="settings-sidebar">
-                            <button class="settings-tab-btn active" data-tab="tab-overview">Обзор</button>
-                            <button class="settings-tab-btn" data-tab="tab-permissions">Права канала</button>
+                            <button class="settings-tab-btn active" data-tab="tab-overview">Overview</button>
+                            <button class="settings-tab-btn" data-tab="tab-permissions">Permissions</button>
                         </div>
                         <div class="settings-content">
-                            <!-- TAB 1: OVERVIEW -->
                             <div id="tab-overview" class="tab-pane">
                                 <div class="input-group">
-                                    <label>НАЗВАНИЕ КАНАЛА</label>
+                                    <label>CHANNEL NAME</label>
                                     <input type="text" id="setting-chan-name" value="${escapeHtml(chanData.name || chKey)}">
                                 </div>
                                 <div class="input-group">
-                                    <label>ТЕМА КАНАЛА (ОПИСАНИЕ)</label>
-                                    <textarea id="setting-chan-topic" rows="5" placeholder="Расскажите участникам, как пользоваться этим каналом!">${escapeHtml(chanData.topic || '')}</textarea>
+                                    <label>CHANNEL TOPIC</label>
+                                    <textarea id="setting-chan-topic" rows="5" placeholder="Tell members how to use this channel!">${escapeHtml(chanData.topic || '')}</textarea>
                                 </div>
                             </div>
-                            <!-- TAB 2: PERMISSIONS -->
                             <div id="tab-permissions" class="tab-pane hidden">
                                 <div style="display: flex; gap: 15px; height: 100%;">
                                     <div style="width: 200px; border-right: 1px solid #333; padding-right: 10px; overflow-y: auto;">
-                                        <div style="font-size: 11px; margin-bottom: 10px; color: #aaa;">РОЛИ / ЛЮДИ</div>
+                                        <div style="font-size: 11px; margin-bottom: 10px; color: #aaa;">ROLES</div>
                                         <div id="settings-roles-list"></div>
                                     </div>
                                     <div style="flex-grow: 1; padding-left: 5px;" id="settings-role-perms-panel">
-                                        <div style="color: #666; font-size: 12px; text-align: center; margin-top: 50px;">Выберите роль слева, чтобы настроить её права</div>
+                                        <div style="color: #666; font-size: 12px; text-align: center; margin-top: 50px;">Select a role on the left to configure its permissions</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="modal-buttons">
-                        <button class="admin-panel-btn" id="save-all-settings" style="display: none;">СОХРАНИТЬ ИЗМЕНЕНИЯ</button>
+                        <button class="admin-panel-btn" id="save-all-settings" style="display: none;">SAVE CHANGES</button>
                     </div>
                 </div>
             `;
@@ -1602,13 +1602,13 @@
 
                 rolePermsPanel.innerHTML = `
                     <div style="font-size: 13px; font-weight: bold; color: ${r.color || '#fff'}; margin-bottom: 15px;">
-                        Права для роли: ${r.name}
+                        Permissions for role: ${r.name}
                     </div>
                     <div class="checkbox-group">
-                        <input type="checkbox" id="chk-perm-read" ${canRead ? 'checked' : ''}> Просмотр текстового канала
+                        <input type="checkbox" id="chk-perm-read" ${canRead ? 'checked' : ''}> View Channel
                     </div>
                     <div class="checkbox-group">
-                        <input type="checkbox" id="chk-perm-send" ${canSend ? 'checked' : ''}> Отправка сообщений
+                        <input type="checkbox" id="chk-perm-send" ${canSend ? 'checked' : ''}> Send Messages
                     </div>
                 `;
 
@@ -1647,7 +1647,7 @@
                 const finalTopic = topicInput.value;
 
                 if (!finalName) {
-                    alert("Название канала не может быть пустым.");
+                    alert("Channel name cannot be empty.");
                     return;
                 }
 
@@ -1663,10 +1663,10 @@
                     });
 
                     modal.remove();
-                    alert("Настройки канала успешно сохранены!");
+                    alert("Channel settings saved successfully!");
                     fetchData();
                 } catch (err) {
-                    alert("Ошибка при сохранении настроек.");
+                    alert("Error saving settings.");
                 }
             };
         }
@@ -1676,37 +1676,128 @@
             openChannelSettingsModal(contextTarget.catId, contextTarget.id);
         }
 
+        // Черная панель управления ролями (Edit Roles) с левым столбцом, контекстным меню на ПКМ и правой частью (90%)
         async function openRolesModal() {
             const rolesRes = await fetch(`${FIREBASE_URL}/roles.json?auth=${FIREBASE_TOKEN}`);
-            const roles = await rolesRes.json() || {};
-
-            let rolesHtml = '';
-            Object.keys(roles).forEach(key => {
-                rolesHtml += `<div style="display:flex; justify-content:space-between; margin-bottom:8px;"><b style="color:${roles[key].color}">${roles[key].name}</b> <span>${roles[key].color}</span></div>`;
-            });
+            const roles = await rolesRes.json() || { member: { name: "member", color: "#ffffff" } };
 
             const modal = document.createElement('div');
             modal.className = 'modal-overlay';
             modal.innerHTML = `
-                <div class="modal-card">
-                    <h3>SERVER SETTINGS & ROLES</h3>
-                    <div style="margin-bottom: 15px; max-height: 150px; overflow-y:auto;">${rolesHtml}</div>
-                    <button class="admin-panel-btn" id="create-role-btn" style="width:100%; margin-bottom:10px;">CREATE NEW ROLE</button>
-                    <button class="admin-panel-btn" id="rename-server-btn" style="width:100%; margin-bottom:10px;">RENAME COMMUNITY</button>
-                    <div class="modal-buttons">
-                        <button class="admin-panel-btn" id="close-modal">CLOSE</button>
+                <div class="modal-card" style="width: 850px; height: 500px; display: flex; flex-direction: column;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3>EDIT ROLES</h3>
+                        <button id="close-roles-modal" style="background:none; border:none; color:#fff; cursor:pointer; font-size:16px;">✕</button>
+                    </div>
+
+                    <div style="display: flex; flex-grow: 1; gap: 15px; overflow: hidden;">
+                        <!-- Left column: Roles list (Right-click to create role) -->
+                        <div id="roles-sidebar-col" style="width: 220px; border-right: 1px solid #333; padding-right: 10px; overflow-y: auto;">
+                            <div style="font-size: 11px; color: #aaa; margin-bottom: 8px;">ROLES (RIGHT CLICK TO CREATE)</div>
+                            <div id="roles-list-items"></div>
+                        </div>
+
+                        <!-- Right area (90%): Role name/color rectangle on top, permissions below -->
+                        <div style="flex-grow: 1; overflow-y: auto; padding-left: 5px;" id="role-details-panel">
+                            <div style="color: #666; font-size: 12px; text-align: center; margin-top: 100px;">Select a role on the left</div>
+                        </div>
                     </div>
                 </div>
             `;
             document.getElementById('modal-container').appendChild(modal);
 
-            document.getElementById('close-modal').onclick = () => modal.remove();
-            document.getElementById('rename-server-btn').onclick = () => {
-                modal.remove();
-                handleCreateCommunityPrompt();
-            };
-            document.getElementById('create-role-btn').onclick = async () => {
-                const rName = prompt("Role Name:");
+            const rolesListItems = modal.querySelector('#roles-list-items');
+            const roleDetailsPanel = modal.querySelector('#role-details-panel');
+            let selectedRoleKey = Object.keys(roles)[0];
+
+            function renderRolesListUI() {
+                let html = '';
+                Object.keys(roles).forEach(rKey => {
+                    const r = roles[rKey];
+                    const isSelected = (rKey === selectedRoleKey);
+                    html += `
+                        <div class="role-item-row" data-rkey="${rKey}" style="padding: 8px; font-size: 13px; cursor: pointer; margin-bottom: 4px; background: ${isSelected ? '#fff' : 'transparent'}; color: ${isSelected ? '#000' : r.color || '#fff'}; border: 1px solid ${isSelected ? '#fff' : '#333'}">
+                            ${r.name}
+                        </div>
+                    `;
+                });
+                rolesListItems.innerHTML = html;
+
+                rolesListItems.querySelectorAll('.role-item-row').forEach(item => {
+                    item.onclick = () => {
+                        selectedRoleKey = item.dataset.rkey;
+                        renderRolesListUI();
+                        renderRoleDetailsForm();
+                    };
+                });
+            }
+
+            function renderRoleDetailsForm() {
+                const r = roles[selectedRoleKey];
+                if (!r) return;
+
+                roleDetailsPanel.innerHTML = `
+                    <!-- Прямоугольник сверху: Название роли и цвет роли -->
+                    <div style="border: 1px solid #fff; padding: 15px; margin-bottom: 20px; background: #111;">
+                        <div style="display: flex; gap: 15px; align-items: center;">
+                            <div style="flex-grow: 1;" class="input-group">
+                                <label>ROLE NAME</label>
+                                <input type="text" id="edit-role-name-input" value="${escapeHtml(r.name)}">
+                            </div>
+                            <div style="width: 120px;" class="input-group">
+                                <label>ROLE COLOR</label>
+                                <input type="text" id="edit-role-color-input" value="${escapeHtml(r.color || '#ffffff')}">
+                            </div>
+                        </div>
+                        <button class="admin-panel-btn" id="save-role-info-btn" style="margin-top: 10px;">UPDATE ROLE INFO</button>
+                    </div>
+
+                    <!-- Права роли под прямоугольником -->
+                    <div style="font-size: 13px; font-weight: bold; margin-bottom: 12px; color: #fff;">ROLE PERMISSIONS</div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="perm-send-msg" checked> Send Messages
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="perm-view-cmd" checked> View Commands
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="perm-edit-chan" checked> Edit Text Channels
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="perm-edit-server" checked> Edit Server View
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="perm-ban-players" checked> Ban Players
+                    </div>
+                `;
+
+                modal.querySelector('#save-role-info-btn').onclick = async () => {
+                    const newName = modal.querySelector('#edit-role-name-input').value.trim();
+                    const newColor = modal.querySelector('#edit-role-color-input').value.trim();
+                    if (!newName) return;
+
+                    roles[selectedRoleKey].name = newName;
+                    roles[selectedRoleKey].color = newColor;
+
+                    await fetch(`${FIREBASE_URL}/roles/${selectedRoleKey}.json?auth=${FIREBASE_TOKEN}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ name: newName, color: newColor })
+                    });
+                    alert("Role updated successfully!");
+                    renderRolesListUI();
+                    renderRoleDetailsForm();
+                    fetchData();
+                };
+            }
+
+            renderRolesListUI();
+            renderRoleDetailsForm();
+
+            // ПКМ по левому столбику для создания новой роли
+            modal.querySelector('#roles-sidebar-col').oncontextmenu = async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const rName = prompt("New Role Name:");
                 if (!rName) return;
                 const rColor = prompt("Role Color (Hex like #ffffff):", "#ffffff");
                 const rKey = rName.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -1716,8 +1807,11 @@
                     body: JSON.stringify({ name: rName, color: rColor || "#ffffff" })
                 });
                 modal.remove();
+                openRolesModal();
                 fetchData();
             };
+
+            modal.querySelector('#close-roles-modal').onclick = () => modal.remove();
         }
 
         function generateDefaultAvatar(name) {
