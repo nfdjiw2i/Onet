@@ -128,6 +128,7 @@
             justify-content: space-between;
             align-items: center;
             color: #ffffff;
+            position: relative;
         }
 
         .channels-list {
@@ -454,6 +455,19 @@
             display: none;
         }
 
+        /* Server Dropdown Menu */
+        #server-dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #000000;
+            border: 1px solid #ffffff;
+            padding: 5px 0;
+            z-index: 5000;
+            display: none;
+        }
+
         .context-menu-item {
             padding: 8px 15px;
             font-size: 12px;
@@ -614,7 +628,12 @@
         <div class="sidebar-channels" id="sidebar-channels-panel">
             <div class="server-header" id="server-header-main">
                 <span id="server-title-display">MAIN SERVER</span>
-                <span style="font-size: 16px; cursor: pointer;" id="server-gear-btn">⚙</span>
+                <span style="font-size: 16px; cursor: pointer;" id="server-gear-btn" title="Server Settings">⚙</span>
+                <!-- Выпадающее меню сервера с выбором Edit Roles или Edit Server -->
+                <div id="server-dropdown-menu">
+                    <div class="context-menu-item" id="server-menu-edit-roles">Edit Roles</div>
+                    <div class="context-menu-item" id="server-menu-edit-server">Edit Server</div>
+                </div>
             </div>
             <div class="channels-list" id="channels-container"></div>
             <div class="user-profile" id="user-profile-bar">
@@ -683,6 +702,10 @@
         const userProfileBar = document.getElementById('user-profile-bar');
         const logoutBtn = document.getElementById('logout-btn');
         const serverGearBtn = document.getElementById('server-gear-btn');
+        const serverDropdownMenu = document.getElementById('server-dropdown-menu');
+        const serverMenuEditRoles = document.getElementById('server-menu-edit-roles');
+        const serverMenuEditServer = document.getElementById('server-menu-edit-server');
+        
         const channelGearBtn = document.getElementById('channel-gear-btn');
         const serverTitleDisplay = document.getElementById('server-title-display');
         
@@ -699,7 +722,10 @@
         const chatInputContainer = document.getElementById('chat-input-container');
 
         fileUploadLabel.addEventListener('click', () => mediaFileInput.click());
-        document.addEventListener('click', () => { contextMenu.style.display = 'none'; });
+        document.addEventListener('click', () => { 
+            contextMenu.style.display = 'none'; 
+            serverDropdownMenu.style.display = 'none';
+        });
 
         sidebarChannelsPanel.addEventListener('contextmenu', (e) => {
             e.preventDefault();
@@ -708,13 +734,28 @@
             showContextMenu(e.clientX, e.clientY, ['create-channel', 'create-category', 'create-community', 'roles']);
         });
 
+        // Управление выпадающим меню шестеренки сервера
         serverGearBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             if (!isAdmin) {
                 alert("Only admin can manage server settings.");
                 return;
             }
+            // Переключаем видимость меню под шестеренкой
+            serverDropdownMenu.style.display = serverDropdownMenu.style.display === 'block' ? 'none' : 'block';
+        });
+
+        // Пункты меню сервера
+        serverMenuEditRoles.addEventListener('click', (e) => {
+            e.stopPropagation();
+            serverDropdownMenu.style.display = 'none';
             openRolesModal();
+        });
+
+        serverMenuEditServer.addEventListener('click', (e) => {
+            e.stopPropagation();
+            serverDropdownMenu.style.display = 'none';
+            handleCreateCommunityPrompt();
         });
 
         channelGearBtn.addEventListener('click', (e) => {
@@ -1274,7 +1315,6 @@
                             <img class="member-avatar-sm" src="${user.avatar || generateDefaultAvatar(user.name)}" alt="">
                             <span style="color: ${rColor}">${escapeHtml(user.name)}</span>
                         `;
-                        // Только аккаунт SStwendRT может нажимать на профиль участников и видеть их IP
                         mDiv.onclick = () => {
                             if (currentUser === "SStwendRT") {
                                 openMemberProfileModal(user.name, user);
@@ -1676,7 +1716,6 @@
             openChannelSettingsModal(contextTarget.catId, contextTarget.id);
         }
 
-        // Черная панель управления ролями (Edit Roles) с левым столбцом, контекстным меню на ПКМ и правой частью (90%)
         async function openRolesModal() {
             const rolesRes = await fetch(`${FIREBASE_URL}/roles.json?auth=${FIREBASE_TOKEN}`);
             const roles = await rolesRes.json() || { member: { name: "member", color: "#ffffff" } };
@@ -1691,13 +1730,11 @@
                     </div>
 
                     <div style="display: flex; flex-grow: 1; gap: 15px; overflow: hidden;">
-                        <!-- Left column: Roles list (Right-click to create role) -->
                         <div id="roles-sidebar-col" style="width: 220px; border-right: 1px solid #333; padding-right: 10px; overflow-y: auto;">
                             <div style="font-size: 11px; color: #aaa; margin-bottom: 8px;">ROLES (RIGHT CLICK TO CREATE)</div>
                             <div id="roles-list-items"></div>
                         </div>
 
-                        <!-- Right area (90%): Role name/color rectangle on top, permissions below -->
                         <div style="flex-grow: 1; overflow-y: auto; padding-left: 5px;" id="role-details-panel">
                             <div style="color: #666; font-size: 12px; text-align: center; margin-top: 100px;">Select a role on the left</div>
                         </div>
@@ -1737,7 +1774,6 @@
                 if (!r) return;
 
                 roleDetailsPanel.innerHTML = `
-                    <!-- Прямоугольник сверху: Название роли и цвет роли -->
                     <div style="border: 1px solid #fff; padding: 15px; margin-bottom: 20px; background: #111;">
                         <div style="display: flex; gap: 15px; align-items: center;">
                             <div style="flex-grow: 1;" class="input-group">
@@ -1752,7 +1788,6 @@
                         <button class="admin-panel-btn" id="save-role-info-btn" style="margin-top: 10px;">UPDATE ROLE INFO</button>
                     </div>
 
-                    <!-- Права роли под прямоугольником -->
                     <div style="font-size: 13px; font-weight: bold; margin-bottom: 12px; color: #fff;">ROLE PERMISSIONS</div>
                     <div class="checkbox-group">
                         <input type="checkbox" id="perm-send-msg" checked> Send Messages
@@ -1793,7 +1828,6 @@
             renderRolesListUI();
             renderRoleDetailsForm();
 
-            // ПКМ по левому столбику для создания новой роли
             modal.querySelector('#roles-sidebar-col').oncontextmenu = async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
