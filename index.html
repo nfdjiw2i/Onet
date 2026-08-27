@@ -206,7 +206,7 @@
             font-size: 12px;
         }
 
-        /* Profile Panel Styles as requested */
+        /* Profile Panel Styles */
         .user-profile {
             padding: 15px;
             border-top: 1px solid #ffffff;
@@ -616,7 +616,7 @@
             </div>
             <div class="channels-list" id="channels-container"></div>
             <div class="user-profile" id="user-profile-bar">
-                <img id="my-avatar-display" class="user-avatar-sm" src="" alt="" title="Click to change avatar">
+                <img id="my-avatar-display" class="user-avatar-sm" src="" alt="" title="Profile settings">
                 <div class="user-info-text">
                     <div id="current-username-display" style="font-weight: bold; font-size: 13px;">User</div>
                     <div id="current-user-desc" style="font-size: 10px; color: #ccc;">Edit Profile</div>
@@ -715,7 +715,6 @@
             openRolesModal();
         });
 
-        // Открытие меню настроек текущего канала по клику на шестеренку
         channelGearBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             if (!isAdmin) {
@@ -839,50 +838,128 @@
             } catch (e) {}
         }
 
+        // Клик на панель профиля слева внизу: открывает черное модальное окно профиля
         userProfileBar.addEventListener('click', async () => {
-            const newName = prompt("New Username:", currentUser);
-            const newBio = prompt("New Profile Description:", currentUserDesc.textContent);
-            const newAvatar = prompt("New Avatar Image URL (or leave blank):", "");
-            
             try {
                 const userRes = await fetch(`${FIREBASE_URL}/users/${currentUser}.json?auth=${FIREBASE_TOKEN}`);
-                const userData = await userRes.json();
+                const userData = await userRes.json() || {};
 
-                if (newName && newName !== currentUser) {
-                    const checkRes = await fetch(`${FIREBASE_URL}/users/${newName}.json?auth=${FIREBASE_TOKEN}`);
-                    if (await checkRes.json()) {
-                        alert("Username already taken!");
+                let currentAvatar = userData.avatar || "";
+                let currentName = currentUser;
+                let currentBio = userData.bio || "";
+
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay';
+                
+                modal.innerHTML = `
+                    <div class="modal-card" style="width: 450px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h3>МОЙ ПРОФИЛЬ</h3>
+                            <button id="close-profile-modal" style="background:none; border:none; color:#fff; cursor:pointer; font-size:16px;">✕</button>
+                        </div>
+                        
+                        <div style="display: flex; gap: 20px; align-items: flex-start; margin-bottom: 20px;">
+                            <div style="text-align: center;">
+                                <img id="profile-modal-avatar" src="${currentAvatar || generateDefaultAvatar(currentName)}" style="width: 70px; height: 70px; border: 1px solid #fff; object-fit: cover; cursor: pointer;" title="Нажмите, чтобы изменить аватар">
+                                <div style="font-size: 10px; color: #aaa; margin-top: 4px;">Изменить аватар</div>
+                            </div>
+                            <div style="flex-grow: 1;" class="input-group">
+                                <label>НИКНЕЙМ</label>
+                                <input type="text" id="profile-modal-name" value="${escapeHtml(currentName)}">
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label>ОПИСАНИЕ ПРОФИЛЯ (БИО)</label>
+                            <textarea id="profile-modal-bio" rows="4">${escapeHtml(currentBio)}</textarea>
+                        </div>
+
+                        <div class="modal-buttons" id="profile-save-container" style="display: none;">
+                            <button class="admin-panel-btn" id="save-profile-btn">СОХРАНИТЬ ИЗМЕНЕНИЯ</button>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('modal-container').appendChild(modal);
+
+                const avatarImg = modal.querySelector('#profile-modal-avatar');
+                const nameInput = modal.querySelector('#profile-modal-name');
+                const bioInput = modal.querySelector('#profile-modal-bio');
+                const saveContainer = modal.querySelector('#profile-save-container');
+
+                let newAvatarVal = currentAvatar;
+
+                // Функция проверки изменений для показа кнопки сохранения
+                function checkForChanges() {
+                    const hasChanged = (
+                        nameInput.value.trim() !== currentName ||
+                        bioInput.value !== currentBio ||
+                        newAvatarVal !== currentAvatar
+                    );
+                    if (hasChanged) {
+                        saveContainer.style.display = 'flex';
+                    } else {
+                        saveContainer.style.display = 'none';
+                    }
+                }
+
+                nameInput.addEventListener('input', checkForChanges);
+                bioInput.addEventListener('input', checkForChanges);
+
+                avatarImg.onclick = () => {
+                    const url = prompt("Введите ссылку на новый аватар (или оставьте пустым):", newAvatarVal);
+                    if (url !== null) {
+                        newAvatarVal = url;
+                        avatarImg.src = newAvatarVal || generateDefaultAvatar(nameInput.value || currentUser);
+                        checkForChanges();
+                    }
+                };
+
+                modal.querySelector('#close-profile-modal').onclick = () => modal.remove();
+
+                modal.querySelector('#save-profile-btn').onclick = async () => {
+                    const targetNewName = nameInput.value.trim();
+                    const targetNewBio = bioInput.value;
+
+                    if (!targetNewName) {
+                        alert("Никнейм не может быть пустым.");
                         return;
                     }
-                    await fetch(`${FIREBASE_URL}/users/${newName}.json?auth=${FIREBASE_TOKEN}`, {
-                        method: 'PUT',
-                        body: JSON.stringify({ ...userData, name: newName })
-                    });
-                    await fetch(`${FIREBASE_URL}/users/${currentUser}.json?auth=${FIREBASE_TOKEN}`, {
-                        method: 'DELETE'
-                    });
-                    currentUser = newName;
-                    localStorage.setItem('chat_user', currentUser);
-                }
 
-                if (newBio !== null) {
-                    await fetch(`${FIREBASE_URL}/users/${currentUser}/bio.json?auth=${FIREBASE_TOKEN}`, {
-                        method: 'PUT',
-                        body: JSON.stringify(newBio)
-                    });
-                }
+                    try {
+                        if (targetNewName !== currentUser) {
+                            const checkRes = await fetch(`${FIREBASE_URL}/users/${targetNewName}.json?auth=${FIREBASE_TOKEN}`);
+                            if (await checkRes.json()) {
+                                alert("Этот никнейм уже занят!");
+                                return;
+                            }
+                            await fetch(`${FIREBASE_URL}/users/${targetNewName}.json?auth=${FIREBASE_TOKEN}`, {
+                                method: 'PUT',
+                                body: JSON.stringify({ ...userData, name: targetNewName, bio: targetNewBio, avatar: newAvatarVal })
+                            });
+                            await fetch(`${FIREBASE_URL}/users/${currentUser}.json?auth=${FIREBASE_TOKEN}`, {
+                                method: 'DELETE'
+                            });
+                            currentUser = targetNewName;
+                            localStorage.setItem('chat_user', currentUser);
+                        } else {
+                            await fetch(`${FIREBASE_URL}/users/${currentUser}/bio.json?auth=${FIREBASE_TOKEN}`, {
+                                method: 'PUT', body: JSON.stringify(targetNewBio)
+                            });
+                            await fetch(`${FIREBASE_URL}/users/${currentUser}/avatar.json?auth=${FIREBASE_TOKEN}`, {
+                                method: 'PUT', body: JSON.stringify(newAvatarVal)
+                            });
+                        }
 
-                if (newAvatar !== null && newAvatar !== "") {
-                    await fetch(`${FIREBASE_URL}/users/${currentUser}/avatar.json?auth=${FIREBASE_TOKEN}`, {
-                        method: 'PUT',
-                        body: JSON.stringify(newAvatar)
-                    });
-                }
+                        modal.remove();
+                        fetchUserDataAndAvatar();
+                        fetchData();
+                    } catch (err) {
+                        alert("Не удалось сохранить профиль.");
+                    }
+                };
 
-                fetchUserDataAndAvatar();
-                fetchData();
-            } catch (err) {
-                alert("Failed to update profile.");
+            } catch (e) {
+                alert("Ошибка открытия профиля.");
             }
         });
 
@@ -1333,10 +1410,10 @@
             fetchData();
         }
 
-        // Единое модальное окно настроек канала с вкладками "Обзор" и "Права" (как на скриншотах)
+        // Модальное окно настроек канала с правым столбиком управления ролями и правами
         async function openChannelSettingsModal(catKey, chKey) {
             const rolesRes = await fetch(`${FIREBASE_URL}/roles.json?auth=${FIREBASE_TOKEN}`);
-            const roles = await rolesRes.json() || {};
+            const roles = await rolesRes.json() || { member: { name: "member", color: "#ffffff" } };
             const chanRes = await fetch(`${FIREBASE_URL}/structure/categories/${catKey}/channels/${chKey}.json?auth=${FIREBASE_TOKEN}`);
             const chanData = await chanRes.json() || {};
             const perms = chanData.permissions || {};
@@ -1345,9 +1422,9 @@
             modal.className = 'modal-overlay';
             
             modal.innerHTML = `
-                <div class="modal-card" style="width: 700px;">
+                <div class="modal-card" style="width: 750px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <h3>Настройки канала: #${chanData.name || chKey}</h3>
+                        <h3>Настройки канала: #${escapeHtml(chanData.name || chKey)}</h3>
                         <button id="close-settings-modal" style="background:none; border:none; color:#fff; cursor:pointer; font-size:16px;">✕</button>
                     </div>
                     <div class="settings-modal-layout">
@@ -1367,42 +1444,126 @@
                                     <textarea id="setting-chan-topic" rows="5" placeholder="Расскажите участникам, как пользоваться этим каналом!">${escapeHtml(chanData.topic || '')}</textarea>
                                 </div>
                             </div>
-                            <!-- TAB 2: PERMISSIONS -->
+                            <!-- TAB 2: PERMISSIONS WITH A RIGHT COLUMN -->
                             <div id="tab-permissions" class="tab-pane hidden">
-                                <div style="font-size: 11px; margin-bottom: 15px; color: #aaa;">Используйте права, чтобы настроить возможности пользователей на этом канале.</div>
-                                <div id="roles-perms-container"></div>
+                                <div style="display: flex; gap: 15px; height: 100%;">
+                                    <!-- Левая часть: список ролей для выбора -->
+                                    <div style="width: 200px; border-right: 1px solid #333; padding-right: 10px; overflow-y: auto;">
+                                        <div style="font-size: 11px; margin-bottom: 10px; color: #aaa;">РОЛИ / ЛЮДИ</div>
+                                        <div id="settings-roles-list"></div>
+                                    </div>
+                                    <!-- Правая часть: настройка прав для выбранной роли -->
+                                    <div style="flex-grow: 1; padding-left: 5px;" id="settings-role-perms-panel">
+                                        <div style="color: #666; font-size: 12px; text-align: center; margin-top: 50px;">Выберите роль слева, чтобы настроить её права</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <div class="modal-buttons">
-                        <button class="admin-panel-btn" id="save-all-settings">СОХРАНИТЬ ИЗМЕНЕНИЯ</button>
+                        <button class="admin-panel-btn" id="save-all-settings" style="display: none;">СОХРАНИТЬ ИЗМЕНЕНИЯ</button>
                     </div>
                 </div>
             `;
             document.getElementById('modal-container').appendChild(modal);
 
-            // Рендер прав для ролей
-            const rolesPermsContainer = modal.querySelector('#roles-perms-container');
-            let rolesHtml = '';
-            Object.keys(roles).forEach(rKey => {
-                const rPerm = perms[rKey] || {};
+            const nameInput = modal.querySelector('#setting-chan-name');
+            const topicInput = modal.querySelector('#setting-chan-topic');
+            const saveBtn = modal.querySelector('#save-all-settings');
+
+            let initialName = chanData.name || chKey;
+            let initialTopic = chanData.topic || '';
+            // Копия прав для локального редактирования перед сохранением
+            let currentPermsJSON = JSON.stringify(perms);
+            let editingPerms = JSON.parse(currentPermsJSON);
+
+            function checkSettingsChanged() {
+                const changed = (
+                    nameInput.value.trim() !== initialName ||
+                    topicInput.value !== initialTopic ||
+                    JSON.stringify(editingPerms) !== currentPermsJSON
+                );
+                if (changed) {
+                    saveBtn.style.display = 'block';
+                } else {
+                    saveBtn.style.display = 'none';
+                }
+            }
+
+            nameInput.addEventListener('input', checkSettingsChanged);
+            topicInput.addEventListener('input', checkSettingsChanged);
+
+            // Рендер колонок во вкладке "Права канала"
+            const rolesListContainer = modal.querySelector('#settings-roles-list');
+            const rolePermsPanel = modal.querySelector('#settings-role-perms-panel');
+
+            let selectedRoleKey = Object.keys(roles)[0];
+
+            function renderRolesList() {
+                let html = '';
+                Object.keys(roles).forEach(rKey => {
+                    const r = roles[rKey];
+                    const isSelected = (rKey === selectedRoleKey);
+                    html += `
+                        <div class="role-select-item" data-rkey="${rKey}" style="padding: 8px; font-size: 12px; cursor: pointer; margin-bottom: 4px; background: ${isSelected ? '#fff' : 'transparent'}; color: ${isSelected ? '#000' : r.color || '#fff'}; border: 1px solid ${isSelected ? '#fff' : '#333'}">
+                            ${r.name}
+                        </div>
+                    `;
+                });
+                rolesListContainer.innerHTML = html;
+
+                rolesListContainer.querySelectorAll('.role-select-item').forEach(item => {
+                    item.onclick = () => {
+                        selectedRoleKey = item.dataset.rkey;
+                        renderRolesList();
+                        renderRolePermsForm();
+                    };
+                });
+            }
+
+            function renderRolePermsForm() {
+                const r = roles[selectedRoleKey];
+                if (!r) return;
+
+                if (!editingPerms[selectedRoleKey]) {
+                    editingPerms[selectedRoleKey] = { read: true, send: true };
+                }
+                const rPerm = editingPerms[selectedRoleKey];
                 const canRead = rPerm.read !== false;
                 const canSend = rPerm.send !== false;
-                rolesHtml += `
-                    <div style="border:1px solid #fff; padding:10px; margin-bottom:12px;">
-                        <b style="color: ${roles[rKey].color || '#fff'}">Роль: ${roles[rKey].name}</b>
-                        <div class="checkbox-group" style="margin-top:8px;">
-                            <input type="checkbox" id="modal-perm-read-${rKey}" ${canRead ? 'checked' : ''}> Просмотр канала
-                        </div>
-                        <div class="checkbox-group">
-                            <input type="checkbox" id="modal-perm-send-${rKey}" ${canSend ? 'checked' : ''}> Отправка сообщений
-                        </div>
+
+                rolePermsPanel.innerHTML = `
+                    <div style="font-size: 13px; font-weight: bold; color: ${r.color || '#fff'}; margin-bottom: 15px;">
+                        Права для роли: ${r.name}
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="chk-perm-read" ${canRead ? 'checked' : ''}> Просмотр текстового канала
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="chk-perm-send" ${canSend ? 'checked' : ''}> Отправка сообщений
                     </div>
                 `;
-            });
-            rolesPermsContainer.innerHTML = rolesHtml;
 
-            // Переключение вкладок внутри модального окна
+                const chkRead = rolePermsPanel.querySelector('#chk-perm-read');
+                const chkSend = rolePermsPanel.querySelector('#chk-perm-send');
+
+                chkRead.onchange = () => {
+                    if (!editingPerms[selectedRoleKey]) editingPerms[selectedRoleKey] = {};
+                    editingPerms[selectedRoleKey].read = chkRead.checked;
+                    checkSettingsChanged();
+                };
+
+                chkSend.onchange = () => {
+                    if (!editingPerms[selectedRoleKey]) editingPerms[selectedRoleKey] = {};
+                    editingPerms[selectedRoleKey].send = chkSend.checked;
+                    checkSettingsChanged();
+                };
+            }
+
+            renderRolesList();
+            renderRolePermsForm();
+
+            // Переключение вкладок модального окна
             modal.querySelectorAll('.settings-tab-btn').forEach(btn => {
                 btn.onclick = () => {
                     modal.querySelectorAll('.settings-tab-btn').forEach(b => b.classList.remove('active'));
@@ -1414,36 +1575,25 @@
 
             modal.querySelector('#close-settings-modal').onclick = () => modal.remove();
 
-            // Сохранение изменений в Firebase
-            modal.querySelector('#save-all-settings').onclick = async () => {
-                const newName = modal.querySelector('#setting-chan-name').value.trim();
-                const newTopic = modal.querySelector('#setting-chan-topic').value;
+            // Кнопка сохранения изменений канала
+            saveBtn.onclick = async () => {
+                const finalName = nameInput.value.trim();
+                const finalTopic = topicInput.value;
 
-                if (!newName) {
+                if (!finalName) {
                     alert("Название канала не может быть пустым.");
                     return;
                 }
 
-                // Сбор прав для ролей
-                const newPerms = perms.users ? { users: perms.users } : {};
-                Object.keys(roles).forEach(rKey => {
-                    const cbRead = modal.querySelector(`#modal-perm-read-${rKey}`);
-                    const cbSend = modal.querySelector(`#modal-perm-send-${rKey}`);
-                    newPerms[rKey] = {
-                        read: cbRead ? cbRead.checked : true,
-                        send: cbSend ? cbSend.checked : true
-                    };
-                });
-
                 try {
                     await fetch(`${FIREBASE_URL}/structure/categories/${catKey}/channels/${chKey}/name.json?auth=${FIREBASE_TOKEN}`, {
-                        method: 'PUT', body: JSON.stringify(newName)
+                        method: 'PUT', body: JSON.stringify(finalName)
                     });
                     await fetch(`${FIREBASE_URL}/structure/categories/${catKey}/channels/${chKey}/topic.json?auth=${FIREBASE_TOKEN}`, {
-                        method: 'PUT', body: JSON.stringify(newTopic)
+                        method: 'PUT', body: JSON.stringify(finalTopic)
                     });
                     await fetch(`${FIREBASE_URL}/structure/categories/${catKey}/channels/${chKey}/permissions.json?auth=${FIREBASE_TOKEN}`, {
-                        method: 'PUT', body: JSON.stringify(newPerms)
+                        method: 'PUT', body: JSON.stringify(editingPerms)
                     });
 
                     modal.remove();
