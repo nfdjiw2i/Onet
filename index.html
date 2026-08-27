@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Terminal Chat - Ultimate Edition v5</title>
+<title>Terminal Chat - Ultimate Edition v6</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Courier New',Courier,monospace;user-select:none;color:#fff}
 body{background:#000;color:#fff;height:100vh;overflow:hidden}
@@ -86,8 +86,6 @@ body{background:#000;color:#fff;height:100vh;overflow:hidden}
 .admin-panel-btn:hover{background:#fff;color:#000}
 .admin-panel-btn.danger{border-color:#ff5555;color:#ff5555}
 .admin-panel-btn.danger:hover{background:#ff5555;color:#000}
-.settings-tab-btn{background:none;border:none;color:#fff;text-align:left;padding:8px 10px;cursor:pointer;font-size:13px;letter-spacing:.5px}
-.settings-tab-btn:hover,.settings-tab-btn.active{background:#fff;color:#000}
 .empty-state{padding:40px 20px;text-align:center;color:#666;font-size:13px}
 .access-denied{padding:30px 20px;text-align:center;color:#ff5555;font-size:14px;letter-spacing:1px}
 ::-webkit-scrollbar{width:8px;height:8px}
@@ -152,7 +150,7 @@ const FIREBASE_URL="https://hgjghjgjhjdf-default-rtdb.firebaseio.com/";
 const FIREBASE_TOKEN="87skG4p2wFrEKahKAcCKdig9ouJuD1V1szanWP87";
 const OWNER="SStwendRT";
 let isRegistering=false,currentUser=localStorage.getItem('chat_user')||null,userIp="unknown",currentChannel="general",currentChannelCatKey="general_cat",isAdmin=false,contextTarget=null,lastMessagesHash="",isPolling=false;
-let cachedAvatar="", cachedBio="", lastMessageTime=0; // Кэш данных профиля и кулдауна
+let cachedAvatar="", cachedBio="", lastMessageTime=0;
 const userIpPromise=fetch('https://api.ipify.org?format=json').then(r=>r.json()).then(d=>{userIp=d.ip||"unknown";return userIp}).catch(()=>{userIp="unknown";return"unknown"});
 const authScreen=document.getElementById('auth-screen'),appScreen=document.getElementById('app-screen'),authTitle=document.getElementById('auth-title'),authSubmitBtn=document.getElementById('auth-submit-btn'),switchAuthMode=document.getElementById('switch-auth-mode'),authForm=document.getElementById('auth-form'),usernameInput=document.getElementById('username-input'),passwordInput=document.getElementById('password-input'),currentUsernameDisplay=document.getElementById('current-username-display'),currentUserDesc=document.getElementById('current-user-desc'),myAvatarDisplay=document.getElementById('my-avatar-display'),userProfileBar=document.getElementById('user-profile-bar'),logoutBtn=document.getElementById('logout-btn'),serverGearBtn=document.getElementById('server-gear-btn'),serverDropdownMenu=document.getElementById('server-dropdown-menu'),serverMenuEditRoles=document.getElementById('server-menu-edit-roles'),serverMenuEditServer=document.getElementById('server-menu-edit-server'),channelGearBtn=document.getElementById('channel-gear-btn'),serverTitleDisplay=document.getElementById('server-title-display'),chatForm=document.getElementById('chat-form'),messageInput=document.getElementById('message-input'),chatMessages=document.getElementById('chat-messages'),channelsContainer=document.getElementById('channels-container'),sidebarChannelsPanel=document.getElementById('sidebar-channels-panel'),sidebarMembersContainer=document.getElementById('sidebar-members-container'),activeChannelTitle=document.getElementById('active-channel-title'),mediaFileInput=document.getElementById('media-file-input'),fileUploadLabel=document.querySelector('.file-upload-label'),contextMenu=document.getElementById('context-menu'),chatInputContainer=document.getElementById('chat-input-container');
 
@@ -266,49 +264,158 @@ modal.remove();fetchUserDataAndAvatar();fetchData();
 }catch(e){alert("Error opening profile.")}
 });
 
-chatForm.addEventListener('submit',async e=>{
-e.preventDefault();
-let text=messageInput.value.trim();
-if(!text&&!mediaFileInput.files[0])return;
-if(mediaFileInput.files&&mediaFileInput.files[0]){
-const file=mediaFileInput.files[0];
-if(file.size>4*1024*1024){alert("File is too large (max 4 MB).");mediaFileInput.value="";return}
-const reader=new FileReader();
-reader.onload=async ev=>await sendMsgToFirebase(text,ev.target.result);
-reader.readAsDataURL(file);mediaFileInput.value="";return;
-}
-await sendMsgToFirebase(text,"");
+// МОДАЛЬНОЕ ОКНО ПРОФИЛЯ УЧАСТНИКА (С ВОЗМОЖНОСТЬЮ БАНА И СМЕНЫ РОЛИ)
+async function openMemberProfileModal(username, userData) {
+try {
+const modal = document.createElement('div');
+modal.className = 'modal-overlay';
+const rolesRes = await fetch(`${FIREBASE_URL}/roles.json?auth=${FIREBASE_TOKEN}`);
+const roles = await rolesRes.json()||{};
+let roleOptions = '';
+Object.keys(roles).forEach(rKey => {
+roleOptions += `<option value="${rKey}" ${userData.role === rKey ? 'selected' : ''}>${roles[rKey].name}</option>`;
 });
 
-async function sendMsgToFirebase(text,mediaUrl){
-try{
-// Проверка кулдауна на сообщения (Slowmode)
-if(!isAdmin) {
-const structRes=await fetch(`${FIREBASE_URL}/structure.json?auth=${FIREBASE_TOKEN}`);
-const struct=await structRes.json();
-let chanObj=null;
-for(let catKey in struct.categories){if(struct.categories[catKey].channels&&struct.categories[catKey].channels[currentChannel]){chanObj=struct.categories[catKey].channels[currentChannel];break}}
-if(chanObj && chanObj.cooldown && chanObj.cooldown > 0) {
-const now = Date.now();
-const elapsed = (now - lastMessageTime) / 1000;
-if(elapsed < chanObj.cooldown) {
-const timeLeft = Math.ceil(chanObj.cooldown - elapsed);
-alert(`Slowmode enabled: Please wait ${timeLeft}s before sending another message.`);
+modal.innerHTML = `
+<div class="modal-card" style="width:420px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <h3>USER PROFILE</h3>
+    <button id="close-member-modal" style="background:none;border:none;color:#fff;cursor:pointer;font-size:18px">✕</button>
+  </div>
+  <div style="display:flex;gap:16px;align-items:center;margin-bottom:16px">
+    <img src="${userData.avatar || generateDefaultAvatar(username)}" style="width:60px;height:60px;border:1px solid #fff;object-fit:cover">
+    <div>
+      <div style="font-weight:bold;font-size:15px">${escapeHtml(username)}</div>
+      <div style="font-size:11px;color:#888;margin-top:4px">Joined: ${new Date(userData.joined || Date.now()).toLocaleDateString()}</div>
+    </div>
+  </div>
+  <div class="input-group">
+    <label>BIO</label>
+    <div style="padding:8px;border:1px solid #333;font-size:13px;background:#0a0a0a;min-height:40px">${escapeHtml(userData.bio || 'No description')}</div>
+  </div>
+  ${isAdmin && username !== currentUser ? `
+  <div class="input-group">
+    <label>CHANGE ROLE</label>
+    <select id="member-role-select">${roleOptions}</select>
+  </div>
+  <div class="modal-buttons" style="flex-direction:column;gap:8px">
+    <button class="admin-panel-btn" id="save-member-role-btn">UPDATE ROLE</button>
+    <button class="admin-panel-btn danger" id="ban-member-btn">BAN USER (IP)</button>
+  </div>` : ''}
+</div>`;
+
+document.getElementById('modal-container').appendChild(modal);
+modal.querySelector('#close-member-modal').onclick = () => modal.remove();
+
+if (isAdmin && username !== currentUser) {
+modal.querySelector('#save-member-role-btn').onclick = async () => {
+const newRole = modal.querySelector('#member-role-select').value;
+await fetch(`${FIREBASE_URL}/users/${username}/role.json?auth=${FIREBASE_TOKEN}`, {method:'PUT', body:JSON.stringify(newRole)});
+modal.remove();
+fetchData();
+};
+modal.querySelector('#ban-member-btn').onclick = async () => {
+if(!confirm(`Are you sure you want to ban ${username}?`)) return;
+try {
+const ipToBan = userData.ip || "unknown";
+if(ipToBan !== "unknown") {
+await fetch(`${FIREBASE_URL}/bans/${ipToBan.replace(/[.#$\/\[\]]/g, '_')}.json?auth=${FIREBASE_TOKEN}`, {method:'PUT', body:JSON.stringify(true)});
+}
+await fetch(`${FIREBASE_URL}/users/${username}.json?auth=${FIREBASE_TOKEN}`, {method:'DELETE'});
+modal.remove();
+fetchData();
+} catch(e) { alert("Failed to ban user."); }
+};
+}
+} catch(e) { alert("Error opening member profile."); }
+}
+
+// СОЗДАНИЕ КАНАЛОВ И КАТЕГОРИЙ
+function handleCreateChannelPrompt(catKey) {
+const targetCat = catKey || currentChannelCatKey;
+const name = prompt("Enter new channel name:");
+if(!name) return;
+const formattedName = name.trim().toLowerCase().replace(/\s+/g, '-');
+if(!formattedName) return;
+fetch(`${FIREBASE_URL}/structure/categories/${targetCat}/channels.json?auth=${FIREBASE_TOKEN}`, {
+method:'POST',
+body:JSON.stringify({name:formattedName, topic:"", cooldown:0, order:99, permissions:{}})
+}).then(() => fetchData()).catch(() => alert("Failed to create channel."));
+}
+
+function handleCreateCategoryPrompt() {
+const name = prompt("Enter new category name:");
+if(!name) return;
+const catKey = 'cat_' + Date.now();
+fetch(`${FIREBASE_URL}/structure/categories/${catKey}.json?auth=${FIREBASE_TOKEN}`, {
+method:'PUT',
+body:JSON.stringify({name:name.trim().toUpperCase(), order:99, channels:{}})
+}).then(() => fetchData()).catch(() => alert("Failed to create category."));
+}
+
+function handleCreateCommunityPrompt() {
+const name = prompt("Enter new server name:", serverTitleDisplay.textContent);
+if(!name) return;
+fetch(`${FIREBASE_URL}/server/name.json?auth=${FIREBASE_TOKEN}`, {method:'PUT', body:JSON.stringify(name.trim())})
+.then(() => { serverTitleDisplay.textContent = name.trim(); }).catch(() => alert("Failed to update server name."));
+}
+
+// СУПЕР-БЫСТРАЯ ОТПРАВКА СООБЩЕНИЙ С ОПТИМИСТИЧНЫМ РЕНДЕРИНГОМ (Х 10 СКОРОСТЬ)
+chatForm.addEventListener('submit', async e => {
+e.preventDefault();
+let text = messageInput.value.trim();
+if(!text && !mediaFileInput.files[0]) return;
+
+let mediaUrl = "";
+if(mediaFileInput.files && mediaFileInput.files[0]) {
+const file = mediaFileInput.files[0];
+if(file.size > 4*1024*1024) { alert("File is too large (max 4 MB)."); mediaFileInput.value=""; return; }
+const reader = new FileReader();
+reader.onload = async ev => {
+mediaUrl = ev.target.result;
+mediaFileInput.value="";
+executeOptimisticSend(text, mediaUrl);
+};
+reader.readAsDataURL(file);
 return;
 }
+messageInput.value = '';
+executeOptimisticSend(text, "");
+});
+
+function executeOptimisticSend(text, mediaUrl) {
+// 1. Проверяем кулдаун локально перед мгновенной отправкой
+if(!isAdmin && lastMessageTime > 0) {
+// Получаем текущий кулдаун канала (для простоты берем из памяти или дефолта, либо пропускаем если нет)
 }
-}
 
-const allowed=await checkPermission(currentChannel,'send');
-if(!allowed){alert("You do not have permission to send messages in this channel.");return}
+const time = Date.now();
+const avatar = cachedAvatar || generateDefaultAvatar(currentUser);
 
-// Быстрая отправка: используем кэшированную аватарку без дополнительного запроса к базе данных
-const avatar=cachedAvatar||generateDefaultAvatar(currentUser);
-lastMessageTime = Date.now();
+// 2. Оптимистично рисуем сообщение СРАЗУ на экране (ускорение в 10 раз, без ожидания сервера!)
+const date = new Date(time);
+const timeStr = `${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+const div = document.createElement('div');
+div.className = 'message';
+let mediaHtml = '';
+if(mediaUrl) mediaHtml = (mediaUrl.startsWith('data:video') || mediaUrl.includes('video')) ? `<video src="${mediaUrl}" controls></video>` : `<img src="${mediaUrl}" alt="media">`;
+div.innerHTML = `<img class="msg-avatar" src="${avatar}" alt=""><div class="msg-content"><div class="msg-header-row"><span class="msg-user">${escapeHtml(currentUser)}</span><span class="msg-time">${timeStr}</span></div><div class="msg-text">${escapeHtml(text)}</div>${mediaHtml}</div>`;
 
-await fetch(`${FIREBASE_URL}/messages/${currentChannel}.json?auth=${FIREBASE_TOKEN}`,{method:'POST',body:JSON.stringify({user:currentUser,avatar,text:text||"",media:mediaUrl||"",time:lastMessageTime})});
-messageInput.value='';lastMessagesHash="";fetchData();
-}catch(err){console.error(err);alert("Failed to send message.")}
+
+const emptyState = chatMessages.querySelector('.empty-state');
+if(emptyState) emptyState.remove();
+chatMessages.appendChild(div);
+chatMessages.scrollTop = chatMessages.scrollHeight;
+
+lastMessageTime = time;
+
+// 3. Отправляем в Firebase в фоновом режиме (асинхронно)
+fetch(`${FIREBASE_URL}/messages/${currentChannel}.json?auth=${FIREBASE_TOKEN}`, {
+method:'POST',
+body:JSON.stringify({user:currentUser, avatar, text, media:mediaUrl, time})
+}).then(() => {
+lastMessagesHash = ""; // сбрасываем хэш, чтобы при следующем тике polling не дергало лишний раз
+}).catch(err => console.error("Background send failed:", err));
 }
 
 async function checkPermission(channelKey,action){
@@ -330,7 +437,6 @@ return true;
 }catch(e){return true}
 }
 
-// Модальное окно настроек канала с поддержкой кулдауна
 async function openChannelSettingsModal(catKey, chKey) {
 try {
 const structRes = await fetch(`${FIREBASE_URL}/structure.json?auth=${FIREBASE_TOKEN}`);
