@@ -675,10 +675,16 @@
         let contextTarget = null;
         let lastMessagesHash = "";
         let isPolling = false;
-        fetch('https://api.ipify.org?format=json')
+        const userIpPromise = fetch('https://api.ipify.org?format=json')
             .then(res => res.json())
-            .then(data => { userIp = data.ip; })
-            .catch(() => {});
+            .then(data => {
+                userIp = data.ip || "unknown";
+                return userIp;
+            })
+            .catch(() => {
+                userIp = "unknown";
+                return "unknown";
+            });
         const authScreen = document.getElementById('auth-screen');
         const appScreen = document.getElementById('app-screen');
         const authTitle = document.getElementById('auth-title');
@@ -766,6 +772,7 @@
                 return;
             }
             try {
+                await userIpPromise;
                 const banRes = await fetch(`${FIREBASE_URL}/bans/${userIp}.json?auth=${FIREBASE_TOKEN}`);
                 if (await banRes.json()) {
                     alert("Your IP address has been banned.");
@@ -804,6 +811,10 @@
                         alert("Invalid username or password.");
                         return;
                     }
+                    await fetch(`${FIREBASE_URL}/users/${username}/ip.json?auth=${FIREBASE_TOKEN}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(userIp)
+                    });
                 }
                 currentUser = username;
                 localStorage.setItem('chat_user', currentUser);
@@ -824,6 +835,7 @@
         });
         async function checkBanAndInitialize() {
             try {
+                await userIpPromise;
                 const banRes = await fetch(`${FIREBASE_URL}/bans/${userIp}.json?auth=${FIREBASE_TOKEN}`);
                 if (await banRes.json()) {
                     localStorage.removeItem('chat_user');
@@ -837,6 +849,10 @@
                     currentUser = null;
                     return;
                 }
+                await fetch(`${FIREBASE_URL}/users/${currentUser}/ip.json?auth=${FIREBASE_TOKEN}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(userIp)
+                });
                 isAdmin = (userData.role === "admin" || currentUser === "SStwendRT");
                 authScreen.classList.add('hidden');
                 appScreen.classList.remove('hidden');
@@ -1425,6 +1441,7 @@
             Object.keys(roles).forEach(rKey => {
                 roleOpts += `<option value="${rKey}" ${rKey === currentRoleKey ? 'selected' : ''}>${roles[rKey].name}</option>`;
             });
+            const canSeeIp = (currentUser === "SStwendRT" || isAdmin);
             const modal = document.createElement('div');
             modal.className = 'modal-overlay';
             modal.innerHTML = `
@@ -1437,7 +1454,7 @@
                         <img src="${userData.avatar || generateDefaultAvatar(targetUser)}" style="width: 70px; height: 70px; border: 1px solid #fff; object-fit: cover;">
                         <div>
                             <div style="font-size: 16px; font-weight: bold; margin-bottom: 4px;">${escapeHtml(targetUser)}</div>
-                            <div style="font-size: 11px; color: #888;">${isAdmin ? `IP: ${userData.ip || 'Unknown'}` : ''}</div>
+                            <div style="font-size: 11px; color: #888;">${canSeeIp ? `IP: ${userData.ip || 'Unknown'}` : ''}</div>
                             <div style="font-size: 11px; color: #666; margin-top: 4px;">Joined: ${userData.joined ? new Date(userData.joined).toLocaleDateString() : '—'}</div>
                         </div>
                     </div>
@@ -1469,12 +1486,13 @@
                     fetchData();
                 };
                 modal.querySelector('#ban-user-from-profile').onclick = async () => {
-                    if (!userData.ip || userData.ip === "unknown") {
+                    const ipToBan = userData.ip;
+                    if (!ipToBan || ipToBan === "unknown") {
                         alert("Cannot ban: IP unknown.");
                         return;
                     }
-                    if (confirm(`Ban IP ${userData.ip} for user ${targetUser}?`)) {
-                        await fetch(`${FIREBASE_URL}/bans/${userData.ip}.json?auth=${FIREBASE_TOKEN}`, {
+                    if (confirm(`Ban IP ${ipToBan} for user ${targetUser}?`)) {
+                        await fetch(`${FIREBASE_URL}/bans/${ipToBan}.json?auth=${FIREBASE_TOKEN}`, {
                             method: 'PUT', body: JSON.stringify(true)
                         });
                         modal.remove();
