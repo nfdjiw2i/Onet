@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terminal Chat - Ultimate Edition</title>
+    <title>Terminal Chat - Ultimate Edition v2</title>
     <style>
         * {
             box-sizing: border-box;
@@ -123,11 +123,6 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            cursor: pointer;
-        }
-
-        .server-header:hover {
-            background: #111111;
         }
 
         .channels-list {
@@ -138,6 +133,11 @@
 
         .category-group {
             margin-bottom: 15px;
+            cursor: grab;
+        }
+
+        .category-group.dragging {
+            opacity: 0.4;
         }
 
         .category-header {
@@ -148,7 +148,6 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            cursor: pointer;
             text-transform: uppercase;
         }
 
@@ -175,6 +174,10 @@
             gap: 6px;
         }
 
+        .channel-item.dragging {
+            opacity: 0.4;
+        }
+
         .channel-item:hover, .channel-item.active {
             background: #111111;
             border: 1px solid #ffffff;
@@ -187,6 +190,11 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            cursor: pointer;
+        }
+
+        .user-profile:hover {
+            background: #111111;
         }
 
         .user-avatar-sm {
@@ -242,14 +250,16 @@
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 20px;
         }
 
+        /* Message format: avatar + (time above, message text forward) */
         .message {
             font-size: 14px;
             line-height: 1.4;
             display: flex;
             gap: 12px;
+            align-items: flex-start;
         }
 
         .msg-avatar {
@@ -259,25 +269,33 @@
             object-fit: cover;
             background: #222;
             flex-shrink: 0;
+            border-radius: 0; /* Square avatar as requested */
         }
 
         .msg-content {
             flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .msg-header-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 3px;
         }
 
         .message .msg-user {
             font-weight: bold;
-            margin-right: 10px;
+            font-size: 13px;
         }
 
         .message .msg-time {
             font-size: 10px;
             color: #888888;
-            margin-left: 10px;
         }
 
         .message .msg-text {
-            margin-top: 4px;
             word-break: break-all;
         }
 
@@ -391,7 +409,7 @@
             border: 1px solid #ffffff;
             padding: 5px 0;
             z-index: 5000;
-            min-width: 160px;
+            min-width: 180px;
             display: none;
         }
 
@@ -482,6 +500,7 @@
     <div id="context-menu">
         <div class="context-menu-item" id="ctx-create-channel">Create Channel</div>
         <div class="context-menu-item" id="ctx-create-category">Create Category</div>
+        <div class="context-menu-item" id="ctx-create-community">Create Community</div>
         <div class="context-menu-item" id="ctx-edit">Edit Settings</div>
         <div class="context-menu-item" id="ctx-permissions" style="color: yellow;">Permissions</div>
         <div class="context-menu-item" id="ctx-delete" style="color: red;">Delete</div>
@@ -511,15 +530,15 @@
         <!-- Left Sidebar -->
         <div class="sidebar-channels" id="sidebar-channels-panel">
             <div class="server-header" id="server-header-main">
-                <span>MAIN SERVER</span>
-                <span style="font-size: 16px;">⚙</span>
+                <span id="server-title-display">MAIN SERVER</span>
+                <span style="font-size: 16px; cursor: pointer;" id="gear-settings-btn">⚙</span>
             </div>
             <div class="channels-list" id="channels-container"></div>
-            <div class="user-profile">
+            <div class="user-profile" id="user-profile-bar">
                 <img id="my-avatar-display" class="user-avatar-sm" src="" alt="">
                 <div class="user-info-text">
                     <div id="current-username-display" style="font-weight: bold;">User</div>
-                    <div style="font-size: 9px; cursor: pointer; text-decoration: underline;" id="edit-avatar-btn">Set Avatar</div>
+                    <div style="font-size: 9px;">Edit Profile</div>
                 </div>
                 <button class="logout-btn" id="logout-btn">LOGOUT</button>
             </div>
@@ -557,7 +576,7 @@
         let userIp = "unknown";
         let currentChannel = "general";
         let isAdmin = false;
-        let contextTarget = null; // { type: 'channel'|'category'|'server', id, name }
+        let contextTarget = null; // { type: 'channel'|'category'|'server'|'sidebar', id, name, catId }
 
         fetch('https://api.ipify.org?format=json')
             .then(res => res.json())
@@ -575,19 +594,21 @@
         
         const currentUsernameDisplay = document.getElementById('current-username-display');
         const myAvatarDisplay = document.getElementById('my-avatar-display');
-        const editAvatarBtn = document.getElementById('edit-avatar-btn');
+        const userProfileBar = document.getElementById('user-profile-bar');
         const logoutBtn = document.getElementById('logout-btn');
+        const gearSettingsBtn = document.getElementById('gear-settings-btn');
+        const serverTitleDisplay = document.getElementById('server-title-display');
         
         const chatForm = document.getElementById('chat-form');
         const messageInput = document.getElementById('message-input');
         const chatMessages = document.getElementById('chat-messages');
         const channelsContainer = document.getElementById('channels-container');
+        const sidebarChannelsPanel = document.getElementById('sidebar-channels-panel');
         const sidebarMembersContainer = document.getElementById('sidebar-members-container');
         const activeChannelTitle = document.getElementById('active-channel-title');
         const mediaFileInput = document.getElementById('media-file-input');
         const fileUploadLabel = document.querySelector('.file-upload-label');
         const contextMenu = document.getElementById('context-menu');
-        const serverHeaderMain = document.getElementById('server-header-main');
         const chatInputContainer = document.getElementById('chat-input-container');
 
         fileUploadLabel.addEventListener('click', () => mediaFileInput.click());
@@ -595,11 +616,21 @@
         // Global context menu hide
         document.addEventListener('click', () => { contextMenu.style.display = 'none'; });
 
-        serverHeaderMain.addEventListener('contextmenu', (e) => {
-            if (!isAdmin) return;
+        // Right-click on left sidebar empty area or header
+        sidebarChannelsPanel.addEventListener('contextmenu', (e) => {
             e.preventDefault();
-            contextTarget = { type: 'server' };
-            showContextMenu(e.clientX, e.clientY, ['create-category', 'roles']);
+            e.stopPropagation();
+            contextTarget = { type: 'sidebar' };
+            showContextMenu(e.clientX, e.clientY, ['create-channel', 'create-category', 'create-community', 'roles']);
+        });
+
+        gearSettingsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!isAdmin) {
+                alert("Only admin (SStwendRT) can manage server settings.");
+                return;
+            }
+            openRolesModal();
         });
 
         if (currentUser) {
@@ -653,7 +684,8 @@
             }
         });
 
-        logoutBtn.addEventListener('click', () => {
+        logoutBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
             localStorage.removeItem('chat_user');
             currentUser = null;
             appScreen.classList.add('hidden');
@@ -676,6 +708,11 @@
                 appScreen.classList.remove('hidden');
                 currentUsernameDisplay.textContent = currentUser;
 
+                // Server Title
+                const sNameRes = await fetch(`${FIREBASE_URL}/server/name.json?auth=${FIREBASE_TOKEN}`);
+                const sName = await sNameRes.json();
+                serverTitleDisplay.textContent = sName || "MAIN SERVER";
+
                 // Default structure if empty
                 const rootRes = await fetch(`${FIREBASE_URL}/structure.json?auth=${FIREBASE_TOKEN}`);
                 if (!await rootRes.json()) {
@@ -685,8 +722,9 @@
                             categories: {
                                 "general_cat": {
                                     name: "TEXT CHANNELS",
+                                    order: 0,
                                     channels: {
-                                        "general": { name: "general", permissions: {} }
+                                        "general": { name: "general", order: 0, permissions: {} }
                                     }
                                 }
                             }
@@ -706,17 +744,48 @@
                 const res = await fetch(`${FIREBASE_URL}/users/${currentUser}.json?auth=${FIREBASE_TOKEN}`);
                 const data = await res.json();
                 myAvatarDisplay.src = data?.avatar || generateDefaultAvatar(currentUser);
+                currentUsernameDisplay.textContent = currentUser;
             } catch (e) {}
         }
 
-        editAvatarBtn.addEventListener('click', async () => {
-            const url = prompt("Enter image/GIF URL for your avatar:");
-            if (!url) return;
-            await fetch(`${FIREBASE_URL}/users/${currentUser}/avatar.json?auth=${FIREBASE_TOKEN}`, {
-                method: 'PUT',
-                body: JSON.stringify(url)
-            });
-            myAvatarDisplay.src = url;
+        userProfileBar.addEventListener('click', async () => {
+            const newName = prompt("New Username:", currentUser);
+            const newAvatar = prompt("New Avatar Image URL (or leave blank):", "");
+            
+            try {
+                const userRes = await fetch(`${FIREBASE_URL}/users/${currentUser}.json?auth=${FIREBASE_TOKEN}`);
+                const userData = await userRes.json();
+
+                if (newName && newName !== currentUser) {
+                    const checkRes = await fetch(`${FIREBASE_URL}/users/${newName}.json?auth=${FIREBASE_TOKEN}`);
+                    if (await checkRes.json()) {
+                        alert("Username already taken!");
+                        return;
+                    }
+                    userData.name = newName;
+                    await fetch(`${FIREBASE_URL}/users/${newName}.json?auth=${FIREBASE_TOKEN}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(userData)
+                    });
+                    await fetch(`${FIREBASE_URL}/users/${currentUser}.json?auth=${FIREBASE_TOKEN}`, {
+                        method: 'DELETE'
+                    });
+                    currentUser = newName;
+                    localStorage.setItem('chat_user', currentUser);
+                }
+
+                if (newAvatar !== null && newAvatar !== "") {
+                    await fetch(`${FIREBASE_URL}/users/${currentUser}/avatar.json?auth=${FIREBASE_TOKEN}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(newAvatar)
+                    });
+                }
+
+                fetchUserDataAndAvatar();
+                fetchData();
+            } catch (err) {
+                alert("Failed to update profile.");
+            }
         });
 
         chatForm.addEventListener('submit', async (e) => {
@@ -739,7 +808,6 @@
 
         async function sendMsgToFirebase(text, mediaUrl) {
             try {
-                // Check send permission
                 const allowed = await checkPermission(currentChannel, 'send');
                 if (!allowed) {
                     alert("You do not have permission to send messages in this channel.");
@@ -811,6 +879,9 @@
                 } else if (opt === 'create-category') {
                     div.textContent = 'Create Category';
                     div.onclick = () => handleCreateCategoryPrompt();
+                } else if (opt === 'create-community') {
+                    div.textContent = 'Create Community';
+                    div.onclick = () => handleCreateCommunityPrompt();
                 } else if (opt === 'roles') {
                     div.textContent = 'Manage Roles';
                     div.onclick = () => openRolesModal();
@@ -822,12 +893,15 @@
             contextMenu.style.display = 'block';
         }
 
+        let isPolling = false;
         function startPolling() {
             fetchData();
             setInterval(fetchData, 3000);
         }
 
         async function fetchData() {
+            if (isPolling) return;
+            isPolling = true;
             try {
                 const structRes = await fetch(`${FIREBASE_URL}/structure.json?auth=${FIREBASE_TOKEN}`);
                 const structure = await structRes.json() || { categories: {} };
@@ -835,36 +909,81 @@
                 channelsContainer.innerHTML = '';
                 let channelExists = false;
 
-                Object.keys(structure.categories).forEach(catKey => {
+                // Sort categories by order
+                const sortedCategories = Object.keys(structure.categories).sort((a, b) => {
+                    return (structure.categories[a].order || 0) - (structure.categories[b].order || 0);
+                });
+
+                sortedCategories.forEach(catKey => {
                     const cat = structure.categories[catKey];
                     const catDiv = document.createElement('div');
                     catDiv.className = 'category-group';
+                    catDiv.draggable = isAdmin;
+                    catDiv.dataset.catKey = catKey;
+
+                    // Drag and Drop Categories
+                    catDiv.addEventListener('dragstart', (e) => {
+                        e.stopPropagation();
+                        e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'category', key: catKey }));
+                        catDiv.classList.add('dragging');
+                    });
+                    catDiv.addEventListener('dragend', () => catDiv.classList.remove('dragging'));
+                    catDiv.addEventListener('dragover', (e) => e.preventDefault());
+                    catDiv.addEventListener('drop', async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const data = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
+                        if (data.type === 'category' && data.key !== catKey) {
+                            await reorderCategories(data.key, catKey, sortedCategories);
+                        }
+                    });
 
                     const catHeader = document.createElement('div');
                     catHeader.className = 'category-header';
                     catHeader.innerHTML = `<span>▼ ${cat.name}</span>`;
                     
-                    if (isAdmin) {
-                        catHeader.oncontextmenu = (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            contextTarget = { type: 'category', id: catKey, name: cat.name };
-                            showContextMenu(e.clientX, e.clientY, ['create-channel', 'edit', 'delete']);
-                        };
-                    }
+                    catHeader.oncontextmenu = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!isAdmin) return;
+                        contextTarget = { type: 'category', id: catKey, name: cat.name };
+                        showContextMenu(e.clientX, e.clientY, ['create-channel', 'edit', 'delete']);
+                    };
                     catDiv.appendChild(catHeader);
 
                     const chansContainer = document.createElement('div');
                     chansContainer.className = 'category-channels';
 
                     if (cat.channels) {
-                        Object.keys(cat.channels).forEach(chKey => {
+                        const sortedChans = Object.keys(cat.channels).sort((a, b) => {
+                            return (cat.channels[a].order || 0) - (cat.channels[b].order || 0);
+                        });
+
+                        sortedChans.forEach(chKey => {
                             const ch = cat.channels[chKey];
                             if (chKey === currentChannel) channelExists = true;
 
                             const chDiv = document.createElement('div');
                             chDiv.className = `channel-item ${currentChannel === chKey ? 'active' : ''}`;
+                            chDiv.draggable = isAdmin;
                             chDiv.innerHTML = `<span># ${ch.name}</span>`;
+
+                            chDiv.addEventListener('dragstart', (e) => {
+                                e.stopPropagation();
+                                e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'channel', key: chKey, catKey: catKey }));
+                                chDiv.classList.add('dragging');
+                            });
+                            chDiv.addEventListener('dragend', () => chDiv.classList.remove('dragging'));
+                            chDiv.addEventListener('dragover', (e) => e.preventDefault());
+                            chDiv.addEventListener('drop', async (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const data = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
+                                if (data.type === 'channel') {
+                                    await reorderChannels(data.key, data.catKey, chKey, catKey, sortedChans);
+                                }
+                            });
+
                             chDiv.onclick = async () => {
                                 const canRead = await checkPermission(chKey, 'read');
                                 if (!canRead) {
@@ -876,14 +995,13 @@
                                 fetchData();
                             };
 
-                            if (isAdmin) {
-                                chDiv.oncontextmenu = (e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    contextTarget = { type: 'channel', id: chKey, catId: catKey, name: ch.name };
-                                    showContextMenu(e.clientX, e.clientY, ['edit', 'permissions', 'delete']);
-                                };
-                            }
+                            chDiv.oncontextmenu = (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (!isAdmin) return;
+                                contextTarget = { type: 'channel', id: chKey, catId: catKey, name: ch.name };
+                                showContextMenu(e.clientX, e.clientY, ['edit', 'permissions', 'delete']);
+                            };
 
                             chansContainer.appendChild(chDiv);
                         });
@@ -894,7 +1012,6 @@
 
                 if (!channelExists) currentChannel = 'general';
 
-                // Check read permission for active channel
                 const canReadActive = await checkPermission(currentChannel, 'read');
                 if (!canReadActive) {
                     chatMessages.innerHTML = '<div style="padding:20px; color:red;">[ACCESS DENIED] You do not have permission to read this channel.</div>';
@@ -910,10 +1027,15 @@
                         const div = document.createElement('div');
                         div.className = 'message';
                         let mediaHtml = msg.media ? (msg.media.includes('video') ? `<video src="${msg.media}" controls></video>` : `<img src="${msg.media}">`) : '';
+                        
+                        // Formatting as requested: Square avatar, time above message, text forward
                         div.innerHTML = `
                             <img class="msg-avatar" src="${msg.avatar || generateDefaultAvatar(msg.user)}" alt="">
                             <div class="msg-content">
-                                <div><span class="msg-user">${escapeHtml(msg.user)}</span><span class="msg-time">${timeStr}</span></div>
+                                <div class="msg-header-row">
+                                    <span class="msg-user">${escapeHtml(msg.user)}</span>
+                                    <span class="msg-time">${timeStr}</span>
+                                </div>
                                 <div class="msg-text">${escapeHtml(msg.text)}</div>
                                 ${mediaHtml}
                             </div>
@@ -967,35 +1089,111 @@
 
             } catch (err) {
                 console.error(err);
+            } finally {
+                isPolling = false;
             }
         }
 
+        async function reorderCategories(draggedKey, targetKey, sortedKeys) {
+            const dragIdx = sortedKeys.indexOf(draggedKey);
+            const targetIdx = sortedKeys.indexOf(targetKey);
+            sortedKeys.splice(dragIdx, 1);
+            sortedKeys.splice(targetIdx, 0, draggedKey);
+
+            const updates = {};
+            sortedKeys.forEach((key, idx) => {
+                updates[`${key}/order`] = idx;
+            });
+
+            await fetch(`${FIREBASE_URL}/structure/categories.json?auth=${FIREBASE_TOKEN}`, {
+                method: 'PATCH',
+                body: JSON.stringify(updates)
+            });
+            fetchData();
+        }
+
+        async function reorderChannels(draggedKey, sourceCatKey, targetKey, targetCatKey, sortedChans) {
+            if (sourceCatKey !== targetCatKey) {
+                // Moving channel between categories
+                const structRes = await fetch(`${FIREBASE_URL}/structure/categories/${sourceCatKey}/channels/${draggedKey}.json?auth=${FIREBASE_TOKEN}`);
+                const chanData = await structRes.json();
+                
+                await fetch(`${FIREBASE_URL}/structure/categories/${targetCatKey}/channels/${draggedKey}.json?auth=${FIREBASE_TOKEN}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(chanData)
+                });
+                await fetch(`${FIREBASE_URL}/structure/categories/${sourceCatKey}/channels/${draggedKey}.json?auth=${FIREBASE_TOKEN}`, {
+                    method: 'DELETE'
+                });
+            } else {
+                const dragIdx = sortedChans.indexOf(draggedKey);
+                const targetIdx = sortedChans.indexOf(targetKey);
+                sortedChans.splice(dragIdx, 1);
+                sortedChans.splice(targetIdx, 0, draggedKey);
+
+                const updates = {};
+                sortedChans.forEach((key, idx) => {
+                    updates[`${key}/order`] = idx;
+                });
+                await fetch(`${FIREBASE_URL}/structure/categories/${targetCatKey}/channels.json?auth=${FIREBASE_TOKEN}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify(updates)
+                });
+            }
+            fetchData();
+        }
+
         async function handleCreateCategoryPrompt() {
+            if (!isAdmin) { alert("Admin only."); return; }
             const name = prompt("Category Name:");
             if (!name) return;
             const key = name.toLowerCase().replace(/[^a-z0-9]/g, "_") + "_" + Date.now();
             await fetch(`${FIREBASE_URL}/structure/categories/${key}.json?auth=${FIREBASE_TOKEN}`, {
                 method: 'PUT',
-                body: JSON.stringify({ name, channels: {} })
+                body: JSON.stringify({ name, order: Date.now(), channels: {} })
             });
             fetchData();
         }
 
         async function handleCreateChannelPrompt() {
-            if (!contextTarget || contextTarget.type !== 'category') return;
+            if (!isAdmin) { alert("Admin only."); return; }
+            const targetCat = contextTarget && contextTarget.type === 'category' ? contextTarget.id : null;
+            
+            const structRes = await fetch(`${FIREBASE_URL}/structure/categories.json?auth=${FIREBASE_TOKEN}`);
+            const cats = await structRes.json() || {};
+            const catKeys = Object.keys(cats);
+            if (catKeys.length === 0) {
+                alert("Create a category first!");
+                return;
+            }
+
+            const catId = targetCat || catKeys[0];
             const name = prompt("Channel Name:");
             if (!name) return;
             const key = name.toLowerCase().replace(/[^a-z0-9-_]/g, "");
             if (!key) return;
 
-            await fetch(`${FIREBASE_URL}/structure/categories/${contextTarget.id}/channels/${key}.json?auth=${FIREBASE_TOKEN}`, {
+            await fetch(`${FIREBASE_URL}/structure/categories/${catId}/channels/${key}.json?auth=${FIREBASE_TOKEN}`, {
                 method: 'PUT',
-                body: JSON.stringify({ name: key, permissions: {} })
+                body: JSON.stringify({ name: key, order: Date.now(), permissions: {} })
             });
             fetchData();
         }
 
+        async function handleCreateCommunityPrompt() {
+            if (!isAdmin) { alert("Admin only."); return; }
+            const commName = prompt("Community / Server Name:");
+            if (!commName) return;
+            await fetch(`${FIREBASE_URL}/server/name.json?auth=${FIREBASE_TOKEN}`, {
+                method: 'PUT',
+                body: JSON.stringify(commName)
+            });
+            serverTitleDisplay.textContent = commName;
+            alert("Community created / renamed successfully!");
+        }
+
         async function handleEditTarget() {
+            if (!isAdmin) return;
             if (contextTarget.type === 'category') {
                 const newName = prompt("Edit Category Name:", contextTarget.name);
                 if (newName) {
@@ -1016,6 +1214,7 @@
         }
 
         async function handleDeleteTarget() {
+            if (!isAdmin) return;
             if (!confirm(`Delete ${contextTarget.type} ${contextTarget.name || ''}?`)) return;
             if (contextTarget.type === 'category') {
                 await fetch(`${FIREBASE_URL}/structure/categories/${contextTarget.id}.json?auth=${FIREBASE_TOKEN}`, { method: 'DELETE' });
@@ -1026,7 +1225,7 @@
         }
 
         async function handlePermissionsTarget() {
-            if (contextTarget.type !== 'channel') return;
+            if (!isAdmin || contextTarget.type !== 'channel') return;
             const chKey = contextTarget.id;
             const catKey = contextTarget.catId;
 
@@ -1101,9 +1300,10 @@
             modal.className = 'modal-overlay';
             modal.innerHTML = `
                 <div class="modal-card">
-                    <h3>SERVER ROLES</h3>
+                    <h3>SERVER SETTINGS & ROLES</h3>
                     <div style="margin-bottom: 15px; max-height: 150px; overflow-y:auto;">${rolesHtml}</div>
                     <button class="admin-panel-btn" id="create-role-btn" style="width:100%; margin-bottom:10px;">CREATE NEW ROLE</button>
+                    <button class="admin-panel-btn" id="rename-server-btn" style="width:100%; margin-bottom:10px;">RENAME COMMUNITY</button>
                     <div class="modal-buttons">
                         <button class="admin-panel-btn" id="close-modal">CLOSE</button>
                     </div>
@@ -1112,6 +1312,10 @@
             document.getElementById('modal-container').appendChild(modal);
 
             document.getElementById('close-modal').onclick = () => modal.remove();
+            document.getElementById('rename-server-btn').onclick = () => {
+                modal.remove();
+                handleCreateCommunityPrompt();
+            };
             document.getElementById('create-role-btn').onclick = async () => {
                 const rName = prompt("Role Name:");
                 if (!rName) return;
@@ -1188,7 +1392,7 @@
             ctx.font = 'bold 16px Courier New';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(name.charAt(0).toUpperCase(), 20, 20);
+            ctx.fillText((name || 'U').charAt(0).toUpperCase(), 20, 20);
             return canvas.toDataURL();
         }
 
