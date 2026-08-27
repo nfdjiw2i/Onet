@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Terminal Chat - Ultimate Edition v8</title>
+<title>Terminal Chat - Ultimate Edition v9</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Courier New',Courier,monospace;user-select:none;color:#fff}
 body{background:#000;color:#fff;height:100vh;overflow:hidden}
@@ -542,7 +542,8 @@ else{
 chatInputContainer.style.display='block';
 const msgRes=await fetch(`${FIREBASE_URL}/messages/${currentChannel}.json?auth=${FIREBASE_TOKEN}`);
 const messages=await msgRes.json()||{};
-const msgEntries=Object.entries(messages).sort((a,b)=>a[0].localeCompare(b[0]));
+// ИСПРАВЛЕНИЕ: Сортируем сообщения строго по времени (time), а не по id пуша в Firebase
+const msgEntries=Object.entries(messages).sort((a,b)=>(a[1].time||0)-(b[1].time||0));
 const newHash=JSON.stringify(msgEntries.map(e=>e[0]));
 if(newHash!==lastMessagesHash){
 lastMessagesHash=newHash;chatMessages.innerHTML='';
