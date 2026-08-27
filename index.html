@@ -1,1496 +1,514 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terminal Chat - Ultimate Edition v2</title>
+    <title>Discord Clone Interface</title>
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Courier New', Courier, monospace;
-            user-select: none;
-            color: #ffffff;
         }
 
         body {
-            background-color: #000000;
-            color: #ffffff;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        /* Auth Screen */
-        #auth-screen {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            width: 100vw;
-            position: fixed;
-            top: 0;
-            left: 0;
-            background-color: #000000;
-            z-index: 3000;
-        }
-
-        .auth-card {
-            border: 1px solid #ffffff;
+            background-color: #1e1f22;
+            color: #dbdee1;
+            font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
             padding: 40px;
-            width: 350px;
-            background-color: #000000;
         }
 
-        .auth-card h2 {
-            margin-bottom: 25px;
-            text-align: center;
-            letter-spacing: 2px;
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .top-nav {
+            position: relative;
+            display: inline-block;
+        }
+
+        .user-profile-trigger {
+            cursor: pointer;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            overflow: hidden;
+            background-color: #2b2d31;
+            transition: transform 0.1s ease;
+        }
+
+        .user-profile-trigger:hover {
+            transform: scale(1.05);
+        }
+
+        .mini-avatar {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .profile-popup-menu {
+            position: absolute;
+            top: 60px;
+            left: 0;
+            width: 320px;
+            background-color: #18191c;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: none;
+            border: 1px solid #222428;
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 14px;
+            border-bottom: 1px solid #2b2d31;
+            padding-bottom: 14px;
+        }
+
+        .popup-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .popup-username {
+            font-size: 18px;
+            font-weight: 600;
+            color: #f2f3f5;
+            word-break: break-all;
+        }
+
+        .profile-bio {
+            font-size: 14px;
+            color: #949ba4;
+            line-height: 1.4;
+        }
+
+        .channel-settings-container {
+            background-color: #313338;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .channel-settings-container h2 {
+            color: #f2f3f5;
+            margin-bottom: 8px;
             font-size: 20px;
-            color: #ffffff;
         }
 
-        .input-group {
+        .settings-subtitle {
+            color: #949ba4;
+            font-size: 14px;
             margin-bottom: 20px;
         }
 
-        .input-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 12px;
-            letter-spacing: 1px;
-            color: #ffffff;
+        .sync-banner {
+            background-color: #2b2d31;
+            border: 1px solid #3f4147;
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
         }
 
-        .input-group input, .input-group select {
-            width: 100%;
-            background: #000000;
-            border: 1px solid #ffffff;
-            color: #ffffff;
-            padding: 10px;
+        .sync-text {
             font-size: 14px;
-            outline: none;
-        }
-
-        .auth-btn {
-            width: 100%;
-            background: #000000;
-            border: 1px solid #ffffff;
-            color: #ffffff;
-            padding: 10px;
-            cursor: pointer;
-            font-size: 14px;
-            letter-spacing: 1px;
-            margin-top: 10px;
-            transition: background 0.2s, color 0.2s;
-        }
-
-        .auth-btn:hover {
-            background: #ffffff;
-            color: #000000;
-        }
-
-        .switch-auth {
-            margin-top: 15px;
-            text-align: center;
-            font-size: 12px;
-            cursor: pointer;
-            text-decoration: underline;
-            color: #ffffff;
-        }
-
-        /* Main App Layout */
-        #app-screen {
-            display: flex;
-            height: 100vh;
-            width: 100vw;
-        }
-
-        /* Left Sidebar: Channels & Categories */
-        .sidebar-channels {
-            width: 260px;
-            border-right: 1px solid #ffffff;
-            display: flex;
-            flex-direction: column;
-            background-color: #000000;
-        }
-
-        .server-header {
-            padding: 20px;
-            border-bottom: 1px solid #ffffff;
-            font-weight: bold;
-            letter-spacing: 1px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: #ffffff;
-        }
-
-        .channels-list {
-            padding: 10px;
-            flex-grow: 1;
-            overflow-y: auto;
-        }
-
-        .category-group {
-            margin-bottom: 15px;
-            cursor: grab;
-        }
-
-        .category-group.dragging {
-            opacity: 0.4;
-        }
-
-        .category-header {
-            font-size: 11px;
-            letter-spacing: 1px;
-            color: #ffffff;
-            padding: 4px 6px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            text-transform: uppercase;
-        }
-
-        .category-header:hover {
-            background: #111111;
-        }
-
-        .category-channels {
-            padding-left: 10px;
-            margin-top: 4px;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        .channel-item {
-            padding: 6px 8px;
-            cursor: pointer;
-            font-size: 13px;
-            letter-spacing: 1px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 6px;
-            color: #ffffff;
-        }
-
-        .channel-item.dragging {
-            opacity: 0.4;
-        }
-
-        .channel-item:hover, .channel-item.active {
-            background: #111111;
-            border: 1px solid #ffffff;
-        }
-
-        .channel-actions {
-            display: none;
-            gap: 4px;
-        }
-
-        .channel-item:hover .channel-actions {
-            display: flex;
-        }
-
-        .channel-action-btn {
-            background: none;
-            border: none;
-            color: #ffffff;
-            cursor: pointer;
-            font-size: 12px;
-        }
-
-        /* Profile Panel Styles as requested */
-        .user-profile {
-            padding: 15px;
-            border-top: 1px solid #ffffff;
-            font-size: 12px;
+            color: #f2f3f5;
             display: flex;
             align-items: center;
             gap: 10px;
+        }
+
+        .sync-btn {
+            background-color: #4e5058;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
             cursor: pointer;
-            background: #000;
+            font-weight: 500;
+            transition: background-color 0.2s;
         }
 
-        .user-profile:hover {
-            background: #111111;
+        .sync-btn:hover {
+            background-color: #6d6f78;
         }
 
-        .user-avatar-sm {
-            width: 36px;
-            height: 36px;
-            border: 1px solid #ffffff;
-            object-fit: cover;
-            background: #222;
-            flex-shrink: 0;
-        }
-
-        .user-info-text {
-            flex-grow: 1;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        .logout-btn {
-            background: none;
-            border: 1px solid #ffffff;
-            color: #ffffff;
-            padding: 4px 8px;
-            font-size: 10px;
-            cursor: pointer;
-        }
-
-        .logout-btn:hover {
-            background: #ffffff;
-            color: #000000;
-        }
-
-        /* Center Chat Area */
-        .chat-area {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            background-color: #000000;
-        }
-
-        .chat-header {
-            padding: 20px;
-            border-bottom: 1px solid #ffffff;
-            font-size: 14px;
-            letter-spacing: 1px;
+        .private-channel-box {
+            background-color: #2b2d31;
+            border-radius: 8px;
+            padding: 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            color: #ffffff;
         }
 
-        .chat-messages {
-            flex-grow: 1;
-            padding: 20px;
-            overflow-y: auto;
+        .private-info {
             display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .message {
-            font-size: 14px;
-            line-height: 1.4;
-            display: flex;
-            gap: 12px;
+            gap: 16px;
             align-items: flex-start;
-            color: #ffffff;
         }
 
-        .msg-avatar {
-            width: 40px;
-            height: 40px;
-            border: 1px solid #ffffff;
-            object-fit: cover;
-            background: #222;
+        .lock-icon {
+            font-size: 18px;
+            margin-top: 2px;
+        }
+
+        .private-title {
+            font-weight: 600;
+            color: #f2f3f5;
+            margin-bottom: 4px;
+            font-size: 15px;
+        }
+
+        .private-desc {
+            font-size: 13px;
+            color: #949ba4;
+            line-height: 1.3;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
             flex-shrink: 0;
         }
 
-        .msg-content {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
         }
 
-        .msg-header-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 3px;
-        }
-
-        .message .msg-user {
-            font-weight: bold;
-            font-size: 13px;
-            color: #ffffff;
-        }
-
-        .message .msg-time {
-            font-size: 10px;
-            color: #ffffff;
-        }
-
-        .message .msg-text {
-            word-break: break-all;
-            color: #ffffff;
-        }
-
-        .message img, .message video {
-            max-width: 300px;
-            max-height: 250px;
-            border: 1px solid #ffffff;
-            margin-top: 8px;
-            display: block;
-        }
-
-        .chat-input-area {
-            padding: 20px;
-            border-top: 1px solid #ffffff;
-        }
-
-        .chat-input-form {
-            display: flex;
-            border: 1px solid #ffffff;
-            align-items: center;
-        }
-
-        .file-upload-label {
-            padding: 0 15px;
+        .slider {
+            position: absolute;
             cursor: pointer;
-            border-right: 1px solid #ffffff;
-            font-size: 14px;
-            height: 100%;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #80848e;
+            transition: .3s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #23a55a;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+        .divider {
+            height: 1px;
+            background-color: #3f4147;
+            margin: 24px 0;
+        }
+
+        .permissions-layout {
             display: flex;
+            gap: 24px;
+        }
+
+        .roles-sidebar {
+            width: 240px;
+            flex-shrink: 0;
+        }
+
+        .roles-header {
+            font-size: 12px;
+            font-weight: 700;
+            color: #949ba4;
+            display: flex;
+            justify-content: space-between;
             align-items: center;
-            color: #ffffff;
-        }
-
-        .file-upload-label:hover {
-            background: #ffffff;
-            color: #000000;
-        }
-
-        .chat-input-form input[type="text"] {
-            flex-grow: 1;
-            background: #000000;
-            border: none;
-            color: #ffffff;
-            padding: 12px;
-            font-size: 14px;
-            outline: none;
-        }
-
-        .chat-input-form button[type="submit"] {
-            background: #000000;
-            border-left: 1px solid #ffffff;
-            color: #ffffff;
-            padding: 0 20px;
-            height: 100%;
-            cursor: pointer;
-            font-size: 14px;
-            letter-spacing: 1px;
-            transition: background 0.2s, color 0.2s;
-        }
-
-        .chat-input-form button[type="submit"]:hover {
-            background: #ffffff;
-            color: #000000;
-        }
-
-        /* Right Sidebar: Members & Roles */
-        .sidebar-members {
-            width: 260px;
-            border-left: 1px solid #ffffff;
-            padding: 20px;
-            background-color: #000000;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .members-section h3 {
-            font-size: 11px;
-            letter-spacing: 1px;
-            margin-bottom: 10px;
-            color: #ffffff;
-        }
-
-        .member-item {
-            font-size: 13px;
             margin-bottom: 8px;
-            letter-spacing: 1px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .add-role-icon {
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .role-item {
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #949ba4;
             display: flex;
             align-items: center;
             gap: 8px;
-            cursor: pointer;
-            padding: 4px;
-            border: 1px solid transparent;
-            color: #ffffff;
+            margin-bottom: 2px;
+            transition: background-color 0.15s, color 0.15s;
         }
 
-        .member-item:hover {
-            border: 1px solid #ffffff;
+        .role-item:hover {
+            background-color: #35373c;
+            color: #dbdee1;
         }
 
-        .member-avatar-sm {
-            width: 24px;
-            height: 24px;
-            border: 1px solid #ffffff;
-            object-fit: cover;
+        .role-item.active {
+            background-color: #404249;
+            color: #f2f3f5;
+            font-weight: 500;
         }
 
-        /* Context Menu */
-        #context-menu {
-            position: fixed;
-            background: #000000;
-            border: 1px solid #ffffff;
-            padding: 5px 0;
-            z-index: 5000;
-            min-width: 180px;
-            display: none;
+        .role-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
         }
 
-        .context-menu-item {
-            padding: 8px 15px;
-            font-size: 12px;
-            cursor: pointer;
-            letter-spacing: 1px;
-            color: #ffffff;
+        .member-dot {
+            background-color: #5865f2;
         }
 
-        .context-menu-item:hover {
-            background: #ffffff;
-            color: #000000;
+        .verify-dot {
+            background-color: #fee75c;
         }
 
-        /* Modals */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0,0,0,0.85);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 4000;
+        .help-link {
+            display: block;
+            margin-top: 16px;
+            color: #00a8fc;
+            font-size: 13px;
+            text-decoration: none;
         }
 
-        .modal-card {
-            background: #000000;
-            border: 1px solid #ffffff;
-            padding: 30px;
-            width: 480px;
-            max-height: 85vh;
-            overflow-y: auto;
-            color: #ffffff;
+        .help-link:hover {
+            text-decoration: underline;
         }
 
-        .modal-card h3 {
-            margin-bottom: 20px;
-            font-size: 16px;
-            letter-spacing: 1px;
-            color: #ffffff;
-        }
-
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .admin-panel-btn {
-            background: #000;
-            border: 1px solid #fff;
-            color: #fff;
-            padding: 8px 14px;
-            font-size: 11px;
-            cursor: pointer;
-            letter-spacing: 1px;
+        .permissions-content {
             flex-grow: 1;
-            text-align: center;
         }
 
-        .admin-panel-btn:hover {
-            background: #fff;
-            color: #000;
+        .permissions-content h3 {
+            font-size: 16px;
+            color: #f2f3f5;
+            margin-bottom: 16px;
         }
 
-        .checkbox-group {
+        .permission-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid #3f4147;
+        }
+
+        .perm-info {
+            max-width: 480px;
+        }
+
+        .perm-name {
+            font-weight: 600;
+            color: #f2f3f5;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .perm-desc {
+            font-size: 12px;
+            color: #949ba4;
+            line-height: 1.4;
+        }
+
+        .perm-actions {
+            display: flex;
+            background-color: #2b2d31;
+            border-radius: 8px;
+            padding: 2px;
+            gap: 2px;
+        }
+
+        .perm-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 12px;
-            font-size: 12px;
-            cursor: pointer;
-            color: #ffffff;
+            justify-content: center;
+            color: #949ba4;
+            transition: background-color 0.15s, color 0.15s;
         }
 
-        .checkbox-group input {
-            cursor: pointer;
-            accent-color: #000;
-            width: 16px;
-            height: 16px;
+        .perm-btn.deny:hover {
+            background-color: #da373c;
+            color: #fff;
+        }
+
+        .perm-btn.neutral:hover {
+            background-color: #4e5058;
+            color: #fff;
+        }
+
+        .perm-btn.allow:hover {
+            background-color: #23a55a;
+            color: #fff;
         }
     </style>
 </head>
 <body>
 
-    <!-- Context Menu -->
-    <div id="context-menu">
-        <div class="context-menu-item" id="ctx-create-channel">Create Channel</div>
-        <div class="context-menu-item" id="ctx-create-category">Create Category</div>
-        <div class="context-menu-item" id="ctx-create-community">Create Community</div>
-        <div class="context-menu-item" id="ctx-edit">Edit Settings</div>
-        <div class="context-menu-item" id="ctx-permissions">Permissions</div>
-        <div class="context-menu-item" id="ctx-delete" style="color: red;">Delete</div>
-    </div>
-
-    <!-- Auth Screen -->
-    <div id="auth-screen">
-        <div class="auth-card">
-            <h2 id="auth-title">AUTHORIZATION</h2>
-            <form id="auth-form">
-                <div class="input-group">
-                    <label>USERNAME</label>
-                    <input type="text" id="username-input" required autocomplete="off">
-                </div>
-                <div class="input-group">
-                    <label>PASSWORD</label>
-                    <input type="password" id="password-input" required>
-                </div>
-                <button type="submit" class="auth-btn" id="auth-submit-btn">LOGIN</button>
-            </form>
-            <div class="switch-auth" id="switch-auth-mode">Need an account? Register</div>
-        </div>
-    </div>
-
-    <!-- Main App Screen -->
-    <div id="app-screen" class="hidden">
-        <!-- Left Sidebar -->
-        <div class="sidebar-channels" id="sidebar-channels-panel">
-            <div class="server-header" id="server-header-main">
-                <span id="server-title-display">MAIN SERVER</span>
-                <span style="font-size: 16px; cursor: pointer;" id="gear-settings-btn">⚙</span>
+    <div class="app-container">
+        <div class="top-nav">
+            <div class="user-profile-trigger" onclick="toggleProfileMenu()">
+                <img src="https://via.placeholder.com/64" alt="Аватар" class="mini-avatar">
             </div>
-            <div class="channels-list" id="channels-container"></div>
-            <!-- Profile Layout: Avatar top-left, Nick top-right, Description under -->
-            <div class="user-profile" id="user-profile-bar">
-                <img id="my-avatar-display" class="user-avatar-sm" src="" alt="" title="Click to change avatar">
-                <div class="user-info-text">
-                    <div id="current-username-display" style="font-weight: bold; font-size: 13px;">User</div>
-                    <div id="current-user-desc" style="font-size: 10px; color: #ccc;">Edit Profile</div>
+
+            <div id="profileMenu" class="profile-popup-menu">
+                <div class="profile-header">
+                    <img src="https://via.placeholder.com/64" alt="Аватар" class="popup-avatar">
+                    <div class="popup-username">Арсений</div>
                 </div>
-                <button class="logout-btn" id="logout-btn">LOGOUT</button>
+                <div class="profile-bio">
+                    Здесь находится описание профиля пользователя. Информация о себе, статусы и прочее.
+                </div>
             </div>
         </div>
 
-        <!-- Center Chat -->
-        <div class="chat-area">
-            <div class="chat-header">
-                <span id="active-channel-title"># general</span>
+        <div class="channel-settings-container">
+            <h2>Права канала</h2>
+            <p class="settings-subtitle">Используйте права, чтобы настроить возможности пользователей на этом канале.</p>
+
+            <div class="sync-banner">
+                <div class="sync-text">
+                    <span class="warning-icon">⚠️</span>
+                    Права не синхронизированы с категорией «<strong>Member Category</strong>»
+                </div>
+                <button class="sync-btn">Синхронизировать</button>
             </div>
-            <div class="chat-messages" id="chat-messages"></div>
-            <div class="chat-input-area" id="chat-input-container">
-                <form class="chat-input-form" id="chat-form">
-                    <label class="file-upload-label" title="Upload Media">+</label>
-                    <input type="file" id="media-file-input" accept="image/*,video/*" style="display: none;">
-                    <input type="text" id="message-input" placeholder="Message channel" required autocomplete="off">
-                    <button type="submit">SEND</button>
-                </form>
+
+            <div class="private-channel-box">
+                <div class="private-info">
+                    <span class="lock-icon">🔒</span>
+                    <div>
+                        <div class="private-title">Приватный канал</div>
+                        <div class="private-desc">Если сделать канал приватным, только выбранные вами участники и роли смогут просматривать его.</div>
+                    </div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="permissions-layout">
+                <div class="roles-sidebar">
+                    <div class="roles-header">
+                        <span>роли/участники</span>
+                        <span class="add-role-icon">⊕</span>
+                    </div>
+                    <div class="role-item">
+                        <span class="role-dot member-dot"></span> Member
+                    </div>
+                    <div class="role-item">
+                        <span class="role-dot verify-dot"></span> Verify
+                    </div>
+                    <div class="role-item active">
+                        @everyone
+                    </div>
+                    <a href="#" class="help-link">Нужна помощь с правами?</a>
+                </div>
+
+                <div class="permissions-content">
+                    <h3>Основные права канала</h3>
+
+                    <div class="permission-row">
+                        <div class="perm-info">
+                            <div class="perm-name">Просмотр канала</div>
+                            <div class="perm-desc">Позволяет участникам просматривать этот канал по умолчанию. Отключив у @everyone это право, вы сделаете этот канал приватным.</div>
+                        </div>
+                        <div class="perm-actions">
+                            <button class="perm-btn deny">✕</button>
+                            <button class="perm-btn neutral">⁄</button>
+                            <button class="perm-btn allow">✓</button>
+                        </div>
+                    </div>
+
+                    <div class="permission-row">
+                        <div class="perm-info">
+                            <div class="perm-name">Управлять каналом</div>
+                            <div class="perm-desc">Позволяет участникам менять название, описание и настройки текстового чата этого канала. Также даёт право удалить этот канал.</div>
+                        </div>
+                        <div class="perm-actions">
+                            <button class="perm-btn deny">✕</button>
+                            <button class="perm-btn neutral">⁄</button>
+                            <button class="perm-btn allow">✓</button>
+                        </div>
+                    </div>
+
+                    <div class="permission-row">
+                        <div class="perm-info">
+                            <div class="perm-name">Управлять правами</div>
+                            <div class="perm-desc">Позволяет участникам менять права этого канала.</div>
+                        </div>
+                        <div class="perm-actions">
+                            <button class="perm-btn deny">✕</button>
+                            <button class="perm-btn neutral">⁄</button>
+                            <button class="perm-btn allow">✓</button>
+                        </div>
+                    </div>
+
+                    <div class="permission-row">
+                        <div class="perm-info">
+                            <div class="perm-name">Управлять вебхуками (webhooks)</div>
+                            <div class="perm-desc">Позволяет участникам создавать, редактировать и удалять вебхуки этого канала, которые публикуют сообщения из других приложений и с сайтов.</div>
+                        </div>
+                        <div class="perm-actions">
+                            <button class="perm-btn deny">✕</button>
+                            <button class="perm-btn neutral">⁄</button>
+                            <button class="perm-btn allow">✓</button>
+                        </div>
+                    </div>
+
+                </div>
             </div>
         </div>
-
-        <!-- Right Sidebar -->
-        <div class="sidebar-members" id="sidebar-members-container"></div>
     </div>
-
-    <!-- Modal Container -->
-    <div id="modal-container"></div>
 
     <script>
-        const FIREBASE_URL = "https://hgjghjgjhjdf-default-rtdb.firebaseio.com/";
-        const FIREBASE_TOKEN = "87skG4p2wFrEKahKAcCKdig9ouJuD1V1szanWP87";
-
-        let isRegistering = false;
-        let currentUser = localStorage.getItem('chat_user') || null;
-        let userIp = "unknown";
-        let currentChannel = "general";
-        let isAdmin = false;
-        let contextTarget = null; 
-
-        fetch('https://api.ipify.org?format=json')
-            .then(res => res.json())
-            .then(data => { userIp = data.ip; })
-            .catch(() => {});
-
-        const authScreen = document.getElementById('auth-screen');
-        const appScreen = document.getElementById('app-screen');
-        const authTitle = document.getElementById('auth-title');
-        const authSubmitBtn = document.getElementById('auth-submit-btn');
-        const switchAuthMode = document.getElementById('switch-auth-mode');
-        const authForm = document.getElementById('auth-form');
-        const usernameInput = document.getElementById('username-input');
-        const passwordInput = document.getElementById('password-input');
-        
-        const currentUsernameDisplay = document.getElementById('current-username-display');
-        const currentUserDesc = document.getElementById('current-user-desc');
-        const myAvatarDisplay = document.getElementById('my-avatar-display');
-        const userProfileBar = document.getElementById('user-profile-bar');
-        const logoutBtn = document.getElementById('logout-btn');
-        const gearSettingsBtn = document.getElementById('gear-settings-btn');
-        const serverTitleDisplay = document.getElementById('server-title-display');
-        
-        const chatForm = document.getElementById('chat-form');
-        const messageInput = document.getElementById('message-input');
-        const chatMessages = document.getElementById('chat-messages');
-        const channelsContainer = document.getElementById('channels-container');
-        const sidebarChannelsPanel = document.getElementById('sidebar-channels-panel');
-        const sidebarMembersContainer = document.getElementById('sidebar-members-container');
-        const activeChannelTitle = document.getElementById('active-channel-title');
-        const mediaFileInput = document.getElementById('media-file-input');
-        const fileUploadLabel = document.querySelector('.file-upload-label');
-        const contextMenu = document.getElementById('context-menu');
-        const chatInputContainer = document.getElementById('chat-input-container');
-
-        fileUploadLabel.addEventListener('click', () => mediaFileInput.click());
-        document.addEventListener('click', () => { contextMenu.style.display = 'none'; });
-
-        sidebarChannelsPanel.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            contextTarget = { type: 'sidebar' };
-            showContextMenu(e.clientX, e.clientY, ['create-channel', 'create-category', 'create-community', 'roles']);
-        });
-
-        gearSettingsBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (!isAdmin) {
-                alert("Only admin can manage server settings.");
-                return;
-            }
-            openRolesModal();
-        });
-
-        if (currentUser) {
-            checkBanAndInitialize();
-        }
-
-        switchAuthMode.addEventListener('click', () => {
-            isRegistering = !isRegistering;
-            authTitle.textContent = isRegistering ? "REGISTRATION" : "AUTHORIZATION";
-            authSubmitBtn.textContent = isRegistering ? "REGISTER" : "LOGIN";
-            switchAuthMode.textContent = isRegistering ? "Already have an account? Login" : "Need an account? Register";
-        });
-
-        authForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = usernameInput.value.trim();
-            const password = passwordInput.value.trim();
-            if (!username || !password) return;
-
-            try {
-                const banRes = await fetch(`${FIREBASE_URL}/bans/${userIp}.json?auth=${FIREBASE_TOKEN}`);
-                if (await banRes.json()) {
-                    alert("Your IP address has been banned.");
-                    return;
-                }
-
-                const res = await fetch(`${FIREBASE_URL}/users.json?auth=${FIREBASE_TOKEN}`);
-                const users = await res.json() || {};
-
-                if (isRegistering) {
-                    if (users[username]) {
-                        alert("Username already exists.");
-                        return;
-                    }
-                    await fetch(`${FIREBASE_URL}/users/${username}.json?auth=${FIREBASE_TOKEN}`, {
-                        method: 'PUT',
-                        body: JSON.stringify({ password, ip: userIp, avatar: "", bio: "Member", role: "member", joined: Date.now() })
-                    });
-                } else {
-                    if (!users[username] || users[username].password !== password) {
-                        alert("Invalid username or password.");
-                        return;
-                    }
-                }
-
-                currentUser = username;
-                localStorage.setItem('chat_user', currentUser);
-                checkBanAndInitialize();
-            } catch (err) {
-                alert("Connection error.");
-            }
-        });
-
-        logoutBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            localStorage.removeItem('chat_user');
-            currentUser = null;
-            appScreen.classList.add('hidden');
-            authScreen.classList.remove('hidden');
-            usernameInput.value = '';
-            passwordInput.value = '';
-        });
-
-        async function checkBanAndInitialize() {
-            try {
-                const banRes = await fetch(`${FIREBASE_URL}/bans/${userIp}.json?auth=${FIREBASE_TOKEN}`);
-                if (await banRes.json()) {
-                    localStorage.removeItem('chat_user');
-                    alert("Access denied: IP banned.");
-                    return;
-                }
-
-                isAdmin = (currentUser === "SStwendRT");
-                authScreen.classList.add('hidden');
-                appScreen.classList.remove('hidden');
-                currentUsernameDisplay.textContent = currentUser;
-
-                const sNameRes = await fetch(`${FIREBASE_URL}/server/name.json?auth=${FIREBASE_TOKEN}`);
-                const sName = await sNameRes.json();
-                serverTitleDisplay.textContent = sName || "MAIN SERVER";
-
-                const rootRes = await fetch(`${FIREBASE_URL}/structure.json?auth=${FIREBASE_TOKEN}`);
-                if (!await rootRes.json()) {
-                    await fetch(`${FIREBASE_URL}/structure.json?auth=${FIREBASE_TOKEN}`, {
-                        method: 'PUT',
-                        body: JSON.stringify({
-                            categories: {
-                                "general_cat": {
-                                    name: "TEXT CHANNELS",
-                                    order: 0,
-                                    channels: {
-                                        "general": { name: "general", topic: "General chat", order: 0, permissions: {} }
-                                    }
-                                }
-                            }
-                        })
-                    });
-                }
-
-                fetchUserDataAndAvatar();
-                startPolling();
-            } catch (err) {
-                console.error(err);
-            }
-        }
-
-        async function fetchUserDataAndAvatar() {
-            try {
-                const res = await fetch(`${FIREBASE_URL}/users/${currentUser}.json?auth=${FIREBASE_TOKEN}`);
-                const data = await res.json();
-                myAvatarDisplay.src = data?.avatar || generateDefaultAvatar(currentUser);
-                currentUsernameDisplay.textContent = currentUser;
-                currentUserDesc.textContent = data?.bio || "No description provided";
-            } catch (e) {}
-        }
-
-        userProfileBar.addEventListener('click', async () => {
-            const newName = prompt("New Username:", currentUser);
-            const newBio = prompt("New Profile Description:", currentUserDesc.textContent);
-            const newAvatar = prompt("New Avatar Image URL (or leave blank):", "");
-            
-            try {
-                const userRes = await fetch(`${FIREBASE_URL}/users/${currentUser}.json?auth=${FIREBASE_TOKEN}`);
-                const userData = await userRes.json();
-
-                if (newName && newName !== currentUser) {
-                    const checkRes = await fetch(`${FIREBASE_URL}/users/${newName}.json?auth=${FIREBASE_TOKEN}`);
-                    if (await checkRes.json()) {
-                        alert("Username already taken!");
-                        return;
-                    }
-                    await fetch(`${FIREBASE_URL}/users/${newName}.json?auth=${FIREBASE_TOKEN}`, {
-                        method: 'PUT',
-                        body: JSON.stringify({ ...userData, name: newName })
-                    });
-                    await fetch(`${FIREBASE_URL}/users/${currentUser}.json?auth=${FIREBASE_TOKEN}`, {
-                        method: 'DELETE'
-                    });
-                    currentUser = newName;
-                    localStorage.setItem('chat_user', currentUser);
-                }
-
-                if (newBio !== null) {
-                    await fetch(`${FIREBASE_URL}/users/${currentUser}/bio.json?auth=${FIREBASE_TOKEN}`, {
-                        method: 'PUT',
-                        body: JSON.stringify(newBio)
-                    });
-                }
-
-                if (newAvatar !== null && newAvatar !== "") {
-                    await fetch(`${FIREBASE_URL}/users/${currentUser}/avatar.json?auth=${FIREBASE_TOKEN}`, {
-                        method: 'PUT',
-                        body: JSON.stringify(newAvatar)
-                    });
-                }
-
-                fetchUserDataAndAvatar();
-                fetchData();
-            } catch (err) {
-                alert("Failed to update profile.");
-            }
-        });
-
-        chatForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            let text = messageInput.value.trim();
-            if (!text && !mediaFileInput.files[0]) return;
-
-            if (mediaFileInput.files && mediaFileInput.files[0]) {
-                const reader = new FileReader();
-                reader.onload = async function(ev) {
-                    sendMsgToFirebase(text, ev.target.result);
-                };
-                reader.readAsDataURL(mediaFileInput.files[0]);
-                mediaFileInput.value = "";
-                return;
-            }
-
-            sendMsgToFirebase(text, "");
-        });
-
-        async function sendMsgToFirebase(text, mediaUrl) {
-            try {
-                const allowed = await checkPermission(currentChannel, 'send');
-                if (!allowed) {
-                    alert("You do not have permission to send messages in this channel.");
-                    return;
-                }
-
-                const userRes = await fetch(`${FIREBASE_URL}/users/${currentUser}.json?auth=${FIREBASE_TOKEN}`);
-                const uData = await userRes.json();
-                const avatar = uData?.avatar || generateDefaultAvatar(currentUser);
-
-                await fetch(`${FIREBASE_URL}/messages/${currentChannel}.json?auth=${FIREBASE_TOKEN}`, {
-                    method: 'POST',
-                    body: JSON.stringify({ user: currentUser, avatar, text, media: mediaUrl, time: Date.now() })
-                });
-                messageInput.value = '';
-            } catch (err) {
-                console.error(err);
-            }
-        }
-
-        async function checkPermission(channelKey, action) {
-            if (currentUser === "SStwendRT") return true;
-            try {
-                const structRes = await fetch(`${FIREBASE_URL}/structure.json?auth=${FIREBASE_TOKEN}`);
-                const struct = await structRes.json();
-                
-                let chanObj = null;
-                for (let catKey in struct.categories) {
-                    if (struct.categories[catKey].channels && struct.categories[catKey].channels[channelKey]) {
-                        chanObj = struct.categories[catKey].channels[channelKey];
-                        break;
-                    }
-                }
-                if (!chanObj) return true;
-
-                const userRes = await fetch(`${FIREBASE_URL}/users/${currentUser}.json?auth=${FIREBASE_TOKEN}`);
-                const uData = await userRes.json();
-                const uRole = uData?.role || 'member';
-
-                const perms = chanObj.permissions || {};
-                
-                // Individual user permission override check
-                if (perms.users && perms.users[currentUser] && perms.users[currentUser][action] !== undefined) {
-                    return perms.users[currentUser][action];
-                }
-
-                const rolePerm = perms[uRole];
-                if (rolePerm && rolePerm[action] === false) return false;
-                return true;
-            } catch (e) {
-                return true;
-            }
-        }
-
-        function showContextMenu(x, y, options) {
-            contextMenu.innerHTML = '';
-            options.forEach(opt => {
-                const div = document.createElement('div');
-                div.className = 'context-menu-item';
-                if (opt === 'delete') {
-                    div.style.color = 'red';
-                    div.textContent = 'Delete';
-                    div.onclick = () => handleDeleteTarget();
-                } else if (opt === 'edit') {
-                    div.textContent = 'Edit Settings';
-                    div.onclick = () => handleEditTarget();
-                } else if (opt === 'permissions') {
-                    div.textContent = 'Permissions';
-                    div.onclick = () => handlePermissionsTarget();
-                } else if (opt === 'create-channel') {
-                    div.textContent = 'Create Channel';
-                    div.onclick = () => handleCreateChannelPrompt(contextTarget && contextTarget.type === 'category' ? contextTarget.id : null);
-                } else if (opt === 'create-category') {
-                    div.textContent = 'Create Category';
-                    div.onclick = () => handleCreateCategoryPrompt();
-                } else if (opt === 'create-community') {
-                    div.textContent = 'Create Community';
-                    div.onclick = () => handleCreateCommunityPrompt();
-                } else if (opt === 'roles') {
-                    div.textContent = 'Manage Roles';
-                    div.onclick = () => openRolesModal();
-                }
-                contextMenu.appendChild(div);
-            });
-            contextMenu.style.left = `${x}px`;
-            contextMenu.style.top = `${y}px`;
-            contextMenu.style.display = 'block';
-        }
-
-        let isPolling = false;
-        function startPolling() {
-            fetchData();
-            setInterval(fetchData, 3000);
-        }
-
-        async function fetchData() {
-            if (isPolling) return;
-            isPolling = true;
-            try {
-                const structRes = await fetch(`${FIREBASE_URL}/structure.json?auth=${FIREBASE_TOKEN}`);
-                const structure = await structRes.json() || { categories: {} };
-
-                channelsContainer.innerHTML = '';
-                let channelExists = false;
-
-                const sortedCategories = Object.keys(structure.categories).sort((a, b) => {
-                    return (structure.categories[a].order || 0) - (structure.categories[b].order || 0);
-                });
-
-                sortedCategories.forEach(catKey => {
-                    const cat = structure.categories[catKey];
-                    const catDiv = document.createElement('div');
-                    catDiv.className = 'category-group';
-                    catDiv.draggable = isAdmin;
-                    catDiv.dataset.catKey = catKey;
-
-                    catDiv.addEventListener('dragstart', (e) => {
-                        e.stopPropagation();
-                        e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'category', key: catKey }));
-                        catDiv.classList.add('dragging');
-                    });
-                    catDiv.addEventListener('dragend', () => catDiv.classList.remove('dragging'));
-                    catDiv.addEventListener('dragover', (e) => e.preventDefault());
-                    catDiv.addEventListener('drop', async (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const data = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
-                        if (data.type === 'category' && data.key !== catKey) {
-                            await reorderCategories(data.key, catKey, sortedCategories);
-                        }
-                    });
-
-                    const catHeader = document.createElement('div');
-                    catHeader.className = 'category-header';
-                    catHeader.innerHTML = `<span>▼ ${cat.name}</span>`;
-                    
-                    catHeader.oncontextmenu = (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (!isAdmin) return;
-                        contextTarget = { type: 'category', id: catKey, name: cat.name };
-                        showContextMenu(e.clientX, e.clientY, ['create-channel', 'edit', 'delete']);
-                    };
-                    catDiv.appendChild(catHeader);
-
-                    const chansContainer = document.createElement('div');
-                    chansContainer.className = 'category-channels';
-
-                    // Drop target for channel migration into this category via drag & drop
-                    chansContainer.addEventListener('dragover', (e) => e.preventDefault());
-                    chansContainer.addEventListener('drop', async (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const data = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
-                        if (data.type === 'channel' && data.catKey !== catKey) {
-                            await reorderChannels(data.key, data.catKey, null, catKey, []);
-                        }
-                    });
-
-                    if (cat.channels) {
-                        const sortedChans = Object.keys(cat.channels).sort((a, b) => {
-                            return (cat.channels[a].order || 0) - (cat.channels[b].order || 0);
-                        });
-
-                        sortedChans.forEach(chKey => {
-                            const ch = cat.channels[chKey];
-                            if (chKey === currentChannel) channelExists = true;
-
-                            const chDiv = document.createElement('div');
-                            chDiv.className = `channel-item ${currentChannel === chKey ? 'active' : ''}`;
-                            chDiv.draggable = isAdmin;
-                            
-                            // Added gear icon on channel hover for quick admin settings access
-                            chDiv.innerHTML = `
-                                <span># ${ch.name}</span>
-                                <div class="channel-actions">
-                                    ${isAdmin ? `<button class="channel-action-btn" title="Edit Settings" onclick="event.stopPropagation(); editChannelDirect('${catKey}', '${chKey}')">⚙</button>` : ''}
-                                </div>
-                            `;
-
-                            chDiv.addEventListener('dragstart', (e) => {
-                                e.stopPropagation();
-                                e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'channel', key: chKey, catKey: catKey }));
-                                chDiv.classList.add('dragging');
-                            });
-                            chDiv.addEventListener('dragend', () => chDiv.classList.remove('dragging'));
-                            chDiv.addEventListener('dragover', (e) => e.preventDefault());
-                            chDiv.addEventListener('drop', async (e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                const data = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
-                                if (data.type === 'channel') {
-                                    await reorderChannels(data.key, data.catKey, chKey, catKey, sortedChans);
-                                }
-                            });
-
-                            chDiv.onclick = async () => {
-                                const canRead = await checkPermission(chKey, 'read');
-                                if (!canRead) {
-                                    alert("You do not have permission to view this channel.");
-                                    return;
-                                }
-                                currentChannel = chKey;
-                                activeChannelTitle.textContent = `# ${ch.name}`;
-                                fetchData();
-                            };
-
-                            chDiv.oncontextmenu = (e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                if (!isAdmin) return;
-                                contextTarget = { type: 'channel', id: chKey, catId: catKey, name: ch.name };
-                                showContextMenu(e.clientX, e.clientY, ['edit', 'permissions', 'delete']);
-                            };
-
-                            chansContainer.appendChild(chDiv);
-                        });
-                    }
-                    catDiv.appendChild(chansContainer);
-                    channelsContainer.appendChild(catDiv);
-                });
-
-                if (!channelExists) currentChannel = 'general';
-
-                const canReadActive = await checkPermission(currentChannel, 'read');
-                if (!canReadActive) {
-                    chatMessages.innerHTML = '<div style="padding:20px; color:#fff;">[ACCESS DENIED] You do not have permission to read this channel.</div>';
-                    chatInputContainer.style.display = 'none';
-                } else {
-                    chatInputContainer.style.display = 'block';
-                    const msgRes = await fetch(`${FIREBASE_URL}/messages/${currentChannel}.json?auth=${FIREBASE_TOKEN}`);
-                    const messages = await msgRes.json() || {};
-                    chatMessages.innerHTML = '';
-                    Object.values(messages).sort((a, b) => a.time - b.time).forEach(msg => {
-                        const date = new Date(msg.time);
-                        const timeStr = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-                        const div = document.createElement('div');
-                        div.className = 'message';
-                        let mediaHtml = msg.media ? (msg.media.includes('video') ? `<video src="${msg.media}" controls></video>` : `<img src="${msg.media}">`) : '';
-                        
-                        div.innerHTML = `
-                            <img class="msg-avatar" src="${msg.avatar || generateDefaultAvatar(msg.user)}" alt="">
-                            <div class="msg-content">
-                                <div class="msg-header-row">
-                                    <span class="msg-user">${escapeHtml(msg.user)}</span>
-                                    <span class="msg-time">${timeStr}</span>
-                                </div>
-                                <div class="msg-text">${escapeHtml(msg.text)}</div>
-                                ${mediaHtml}
-                            </div>
-                        `;
-                        chatMessages.appendChild(div);
-                    });
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                }
-
-                // Members & Roles
-                const userRes = await fetch(`${FIREBASE_URL}/users.json?auth=${FIREBASE_TOKEN}`);
-                const users = await userRes.json() || {};
-                const rolesRes = await fetch(`${FIREBASE_URL}/roles.json?auth=${FIREBASE_TOKEN}`);
-                const roles = await rolesRes.json() || { member: { name: "member", color: "#ffffff" } };
-
-                sidebarMembersContainer.innerHTML = '';
-                const grouped = {};
-                Object.keys(roles).forEach(rKey => { grouped[rKey] = []; });
-                if (!grouped['member']) grouped['member'] = [];
-
-                Object.keys(users).forEach(uname => {
-                    const uData = users[uname];
-                    const uRole = uData.role && roles[uData.role] ? uData.role : 'member';
-                    if (!grouped[uRole]) grouped[uRole] = [];
-                    grouped[uRole].push({ name: uname, ...uData });
-                });
-
-                Object.keys(roles).forEach(rKey => {
-                    const rList = grouped[rKey] || [];
-                    if (rList.length === 0 && rKey === 'member') return;
-
-                    const sec = document.createElement('div');
-                    sec.className = 'members-section';
-                    const rColor = roles[rKey].color || '#ffffff';
-                    sec.innerHTML = `<h3 style="color: ${rColor}">${roles[rKey].name.toUpperCase()} — ${rList.length}</h3>`;
-
-                    rList.forEach(user => {
-                        const mDiv = document.createElement('div');
-                        mDiv.className = 'member-item';
-                        mDiv.innerHTML = `
-                            <img class="member-avatar-sm" src="${user.avatar || generateDefaultAvatar(user.name)}" alt="">
-                            <span style="color: ${rColor}">${escapeHtml(user.name)}</span>
-                        `;
-                        if (isAdmin && user.name !== currentUser) {
-                            mDiv.onclick = () => openAdminUserModal(user.name, user.ip);
-                        }
-                        sec.appendChild(mDiv);
-                    });
-                    sidebarMembersContainer.appendChild(sec);
-                });
-
-            } catch (err) {
-                console.error(err);
-            } finally {
-                isPolling = false;
-            }
-        }
-
-        async function reorderCategories(draggedKey, targetKey, sortedKeys) {
-            const dragIdx = sortedKeys.indexOf(draggedKey);
-            const targetIdx = sortedKeys.indexOf(targetKey);
-            sortedKeys.splice(dragIdx, 1);
-            sortedKeys.splice(targetIdx, 0, draggedKey);
-
-            const updates = {};
-            sortedKeys.forEach((key, idx) => {
-                updates[`${key}/order`] = idx;
-            });
-
-            await fetch(`${FIREBASE_URL}/structure/categories.json?auth=${FIREBASE_TOKEN}`, {
-                method: 'PATCH',
-                body: JSON.stringify(updates)
-            });
-            fetchData();
-        }
-
-        async function reorderChannels(draggedKey, sourceCatKey, targetKey, targetCatKey, sortedChans) {
-            if (sourceCatKey !== targetCatKey) {
-                const structRes = await fetch(`${FIREBASE_URL}/structure/categories/${sourceCatKey}/channels/${draggedKey}.json?auth=${FIREBASE_TOKEN}`);
-                const chanData = await structRes.json();
-                
-                await fetch(`${FIREBASE_URL}/structure/categories/${targetCatKey}/channels/${draggedKey}.json?auth=${FIREBASE_TOKEN}`, {
-                    method: 'PUT',
-                    body: JSON.stringify(chanData)
-                });
-                await fetch(`${FIREBASE_URL}/structure/categories/${sourceCatKey}/channels/${draggedKey}.json?auth=${FIREBASE_TOKEN}`, {
-                    method: 'DELETE'
-                });
-            } else if (targetKey) {
-                const dragIdx = sortedChans.indexOf(draggedKey);
-                const targetIdx = sortedChans.indexOf(targetKey);
-                sortedChans.splice(dragIdx, 1);
-                sortedChans.splice(targetIdx, 0, draggedKey);
-
-                const updates = {};
-                sortedChans.forEach((key, idx) => {
-                    updates[`${key}/order`] = idx;
-                });
-                await fetch(`${FIREBASE_URL}/structure/categories/${targetCatKey}/channels.json?auth=${FIREBASE_TOKEN}`, {
-                    method: 'PATCH',
-                    body: JSON.stringify(updates)
-                });
-            }
-            fetchData();
-        }
-
-        async function handleCreateCategoryPrompt() {
-            if (!isAdmin) { alert("Admin only."); return; }
-            const name = prompt("Category Name:");
-            if (!name) return;
-            const key = name.toLowerCase().replace(/[^a-z0-9]/g, "_") + "_" + Date.now();
-            await fetch(`${FIREBASE_URL}/structure/categories/${key}.json?auth=${FIREBASE_TOKEN}`, {
-                method: 'PUT',
-                body: JSON.stringify({ name, order: Date.now(), channels: {} })
-            });
-            fetchData();
-        }
-
-        async function handleCreateChannelPrompt(specificCatId = null) {
-            if (!isAdmin) { alert("Admin only."); return; }
-            const structRes = await fetch(`${FIREBASE_URL}/structure/categories.json?auth=${FIREBASE_TOKEN}`);
-            const cats = await structRes.json() || {};
-            const catKeys = Object.keys(cats);
-            if (catKeys.length === 0) {
-                alert("Create a category first!");
-                return;
-            }
-
-            const catId = specificCatId || catKeys[0];
-            const name = prompt("Channel Name:");
-            if (!name) return;
-            const key = name.toLowerCase().replace(/[^a-z0-9-_]/g, "");
-            if (!key) return;
-
-            await fetch(`${FIREBASE_URL}/structure/categories/${catId}/channels/${key}.json?auth=${FIREBASE_TOKEN}`, {
-                method: 'PUT',
-                body: JSON.stringify({ name: key, topic: "", order: Date.now(), permissions: {} })
-            });
-            fetchData();
-        }
-
-        async function handleCreateCommunityPrompt() {
-            if (!isAdmin) { alert("Admin only."); return; }
-            const commName = prompt("Community / Server Name:");
-            if (!commName) return;
-            await fetch(`${FIREBASE_URL}/server/name.json?auth=${FIREBASE_TOKEN}`, {
-                method: 'PUT',
-                body: JSON.stringify(commName)
-            });
-            serverTitleDisplay.textContent = commName;
-            alert("Community created / renamed successfully!");
-        }
-
-        async function handleEditTarget() {
-            if (!isAdmin) return;
-            if (contextTarget.type === 'category') {
-                const newName = prompt("Edit Category Name:", contextTarget.name);
-                if (newName) {
-                    await fetch(`${FIREBASE_URL}/structure/categories/${contextTarget.id}/name.json?auth=${FIREBASE_TOKEN}`, {
-                        method: 'PUT', body: JSON.stringify(newName)
-                    });
-                    fetchData();
-                }
-            } else if (contextTarget.type === 'channel') {
-                editChannelDirect(contextTarget.catId, contextTarget.id);
-            }
-        }
-
-        async function editChannelDirect(catKey, chKey) {
-            const chanRes = await fetch(`${FIREBASE_URL}/structure/categories/${catKey}/channels/${chKey}.json?auth=${FIREBASE_TOKEN}`);
-            const chanData = await chanRes.json() || {};
-
-            const newName = prompt("Edit Channel Name:", chanData.name || chKey);
-            const newTopic = prompt("Edit Channel Topic / Description:", chanData.topic || "");
-            if (newName) {
-                await fetch(`${FIREBASE_URL}/structure/categories/${catKey}/channels/${chKey}/name.json?auth=${FIREBASE_TOKEN}`, {
-                    method: 'PUT', body: JSON.stringify(newName)
-                });
-                await fetch(`${FIREBASE_URL}/structure/categories/${catKey}/channels/${chKey}/topic.json?auth=${FIREBASE_TOKEN}`, {
-                    method: 'PUT', body: JSON.stringify(newTopic || "")
-                });
-                fetchData();
-            }
-        }
-
-        async function handleDeleteTarget() {
-            if (!isAdmin) return;
-            if (!confirm(`Delete ${contextTarget.type} ${contextTarget.name || ''}?`)) return;
-            if (contextTarget.type === 'category') {
-                await fetch(`${FIREBASE_URL}/structure/categories/${contextTarget.id}.json?auth=${FIREBASE_TOKEN}`, { method: 'DELETE' });
-            } else if (contextTarget.type === 'channel') {
-                await fetch(`${FIREBASE_URL}/structure/categories/${contextTarget.catId}/channels/${contextTarget.id}.json?auth=${FIREBASE_TOKEN}`, { method: 'DELETE' });
-            }
-            fetchData();
-        }
-
-        async function handlePermissionsTarget() {
-            if (!isAdmin || contextTarget.type !== 'channel') return;
-            const chKey = contextTarget.id;
-            const catKey = contextTarget.catId;
-
-            const rolesRes = await fetch(`${FIREBASE_URL}/roles.json?auth=${FIREBASE_TOKEN}`);
-            const roles = await rolesRes.json() || {};
-            const usersRes = await fetch(`${FIREBASE_URL}/users.json?auth=${FIREBASE_TOKEN}`);
-            const users = await usersRes.json() || {};
-
-            const chanRes = await fetch(`${FIREBASE_URL}/structure/categories/${catKey}/channels/${chKey}.json?auth=${FIREBASE_TOKEN}`);
-            const chanData = await chanRes.json() || {};
-            const perms = chanData.permissions || {};
-            const userPerms = perms.users || {};
-
-            const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
-            
-            let rolesPermHtml = '';
-            Object.keys(roles).forEach(rKey => {
-                const rPerm = perms[rKey] || {};
-                const canRead = rPerm.read !== false;
-                const canSend = rPerm.send !== false;
-                rolesPermHtml += `
-                    <div style="border:1px solid #fff; padding:10px; margin-bottom:10px;">
-                        <b>Role: ${roles[rKey].name}</b>
-                        <div class="checkbox-group" style="margin-top:8px;">
-                            <input type="checkbox" id="perm-read-${rKey}" ${canRead ? 'checked' : ''}> Can Read Channel
-                        </div>
-                        <div class="checkbox-group">
-                            <input type="checkbox" id="perm-send-${rKey}" ${canSend ? 'checked' : ''}> Can Send Messages
-                        </div>
-                    </div>
-                `;
-            });
-
-            let usersPermHtml = '';
-            Object.keys(users).forEach(uName => {
-                const uPerm = userPerms[uName] || {};
-                const uCanSend = uPerm.send !== false;
-                usersPermHtml += `
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:12px;">
-                        <span>${uName}</span>
-                        <label><input type="checkbox" id="user-send-${uName}" ${uCanSend ? 'checked' : ''}> Can Send</label>
-                    </div>
-                `;
-            });
-
-            modal.innerHTML = `
-                <div class="modal-card">
-                    <h3>PERMISSIONS: #${contextTarget.name}</h3>
-                    <div style="margin-bottom:10px; font-size:12px; font-weight:bold;">ROLES PERMISSIONS</div>
-                    <div style="max-height: 180px; overflow-y:auto; margin-bottom:15px;">${rolesPermHtml}</div>
-                    <div style="margin-bottom:10px; font-size:12px; font-weight:bold;">INDIVIDUAL USER PERMISSIONS</div>
-                    <div style="max-height: 120px; overflow-y:auto; border:1px solid #fff; padding:10px;">${usersPermHtml}</div>
-                    <div class="modal-buttons">
-                        <button class="admin-panel-btn" id="save-perms">SAVE</button>
-                        <button class="admin-panel-btn" id="close-perms">CANCEL</button>
-                    </div>
-                </div>
-            `;
-            document.getElementById('modal-container').appendChild(modal);
-
-            document.getElementById('close-perms').onclick = () => modal.remove();
-            document.getElementById('save-perms').onclick = async () => {
-                const newPerms = { users: {} };
-                Object.keys(roles).forEach(rKey => {
-                    newPerms[rKey] = {
-                        read: document.getElementById(`perm-read-${rKey}`).checked,
-                        send: document.getElementById(`perm-send-${rKey}`).checked
-                    };
-                });
-                Object.keys(users).forEach(uName => {
-                    const cb = document.getElementById(`user-send-${uName}`);
-                    if (cb) {
-                        newPerms.users[uName] = { send: cb.checked };
-                    }
-                });
-
-                await fetch(`${FIREBASE_URL}/structure/categories/${catKey}/channels/${chKey}/permissions.json?auth=${FIREBASE_TOKEN}`, {
-                    method: 'PUT',
-                    body: JSON.stringify(newPerms)
-                });
-                modal.remove();
-                alert("Permissions updated!");
-            };
-        }
-
-        async function openRolesModal() {
-            const rolesRes = await fetch(`${FIREBASE_URL}/roles.json?auth=${FIREBASE_TOKEN}`);
-            const roles = await rolesRes.json() || {};
-
-            let rolesHtml = '';
-            Object.keys(roles).forEach(key => {
-                rolesHtml += `<div style="display:flex; justify-content:space-between; margin-bottom:8px;"><b style="color:${roles[key].color}">${roles[key].name}</b> <span>${roles[key].color}</span></div>`;
-            });
-
-            const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
-            modal.innerHTML = `
-                <div class="modal-card">
-                    <h3>SERVER SETTINGS & ROLES</h3>
-                    <div style="margin-bottom: 15px; max-height: 150px; overflow-y:auto;">${rolesHtml}</div>
-                    <button class="admin-panel-btn" id="create-role-btn" style="width:100%; margin-bottom:10px;">CREATE NEW ROLE</button>
-                    <button class="admin-panel-btn" id="rename-server-btn" style="width:100%; margin-bottom:10px;">RENAME COMMUNITY</button>
-                    <div class="modal-buttons">
-                        <button class="admin-panel-btn" id="close-modal">CLOSE</button>
-                    </div>
-                </div>
-            `;
-            document.getElementById('modal-container').appendChild(modal);
-
-            document.getElementById('close-modal').onclick = () => modal.remove();
-            document.getElementById('rename-server-btn').onclick = () => {
-                modal.remove();
-                handleCreateCommunityPrompt();
-            };
-            document.getElementById('create-role-btn').onclick = async () => {
-                const rName = prompt("Role Name:");
-                if (!rName) return;
-                const rColor = prompt("Role Color (Hex like #ffffff):", "#ffffff");
-                const rKey = rName.toLowerCase().replace(/[^a-z0-9]/g, "");
-
-                await fetch(`${FIREBASE_URL}/roles/${rKey}.json?auth=${FIREBASE_TOKEN}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({ name: rName, color: rColor || "#ffffff" })
-                });
-                modal.remove();
-                fetchData();
-            };
-        }
-
-        async function openAdminUserModal(targetUser, targetIp) {
-            const rolesRes = await fetch(`${FIREBASE_URL}/roles.json?auth=${FIREBASE_TOKEN}`);
-            const roles = await rolesRes.json() || {};
-
-            let roleOpts = '';
-            Object.keys(roles).forEach(r => {
-                roleOpts += `<option value="${r}">${roles[r].name}</option>`;
-            });
-
-            const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
-            modal.innerHTML = `
-                <div class="modal-card">
-                    <h3>MANAGE USER: ${targetUser}</h3>
-                    <div style="font-size: 12px; margin-bottom: 15px; color: #fff;">IP Address: ${targetIp || 'Unknown'}</div>
-                    <div class="input-group">
-                        <label>ASSIGN ROLE</label>
-                        <select id="assign-role-select">${roleOpts}</select>
-                    </div>
-                    <div class="modal-buttons">
-                        <button class="admin-panel-btn" id="save-user-role">SAVE</button>
-                        <button class="admin-panel-btn" id="ban-user-btn" style="border-color: red; color: red;">BAN IP</button>
-                        <button class="admin-panel-btn" id="close-user-modal">CANCEL</button>
-                    </div>
-                </div>
-            `;
-            document.getElementById('modal-container').appendChild(modal);
-
-            document.getElementById('close-user-modal').onclick = () => modal.remove();
-            document.getElementById('save-user-role').onclick = async () => {
-                const selectedRole = document.getElementById('assign-role-select').value;
-                await fetch(`${FIREBASE_URL}/users/${targetUser}/role.json?auth=${FIREBASE_TOKEN}`, {
-                    method: 'PUT', body: JSON.stringify(selectedRole)
-                });
-                modal.remove();
-                fetchData();
-            };
-            document.getElementById('ban-user-btn').onclick = async () => {
-                if (confirm(`Ban IP ${targetIp}?`)) {
-                    await fetch(`${FIREBASE_URL}/bans/${targetIp}.json?auth=${FIREBASE_TOKEN}`, {
-                        method: 'PUT', body: JSON.stringify(true)
-                    });
-                    modal.remove();
-                    fetchData();
-                }
-            };
-        }
-
-        function generateDefaultAvatar(name) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 40;
-            canvas.height = 40;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, 40, 40);
-            ctx.strokeStyle = '#ffffff';
-            ctx.strokeRect(0, 0, 40, 40);
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 16px Courier New';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText((name || 'U').charAt(0).toUpperCase(), 20, 20);
-            return canvas.toDataURL();
-        }
-
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        function toggleProfileMenu() {
+            const menu = document.getElementById('profileMenu');
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
         }
     </script>
 </body>
