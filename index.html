@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Terminal Chat - Ultimate Edition v7</title>
+<title>Terminal Chat - Ultimate Edition v8</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Courier New',Courier,monospace;user-select:none;color:#fff}
 body{background:#000;color:#fff;height:100vh;overflow:hidden}
@@ -167,9 +167,10 @@ switchAuthMode.addEventListener('click',()=>{isRegistering=!isRegistering;authTi
 
 authForm.addEventListener('submit',async e=>{
 e.preventDefault();
+e.stopPropagation();
 const username=usernameInput.value.trim(),password=passwordInput.value.trim();
-if(!username||!password)return;
-if(username.length<2){alert("Username must be at least 2 characters.");return}
+if(!username||!password)return false;
+if(username.length<2){alert("Username must be at least 2 characters.");return false;}
 try{
 await userIpPromise;
 if(isRegistering && userIp && userIp !== "unknown"){
@@ -178,7 +179,7 @@ const banRes=await fetch(`${FIREBASE_URL}/bans/${userIp.replace(/[.#$\/\[\]]/g, 
 const banData=await banRes.json();
 if(banData === true || (banData && typeof banData === 'object' && banData.banned)){
 alert("Access denied: IP banned.");
-return;
+return false;
 }
 } catch(err) {}
 }
@@ -186,16 +187,17 @@ return;
 const res=await fetch(`${FIREBASE_URL}/users.json?auth=${FIREBASE_TOKEN}`);
 const users=await res.json()||{};
 if(isRegistering){
-if(users[username]){alert("Username already exists.");return}
+if(users[username]){alert("Username already exists.");return false;}
 const isFirstUser=Object.keys(users).length===0;
 await fetch(`${FIREBASE_URL}/users/${username}.json?auth=${FIREBASE_TOKEN}`,{method:'PUT',body:JSON.stringify({password,ip:userIp,avatar:"",bio:isFirstUser?"Server Owner":"Member",role:isFirstUser||username===OWNER?"admin":"member",joined:Date.now()})});
 if(isFirstUser)await fetch(`${FIREBASE_URL}/roles.json?auth=${FIREBASE_TOKEN}`,{method:'PUT',body:JSON.stringify({admin:{name:"Admin",color:"#ff5555"},member:{name:"Member",color:"#ffffff"}})});
 }else{
-if(!users[username]||users[username].password!==password){alert("Invalid username or password.");return}
+if(!users[username]||users[username].password!==password){alert("Invalid username or password.");return false;}
 await fetch(`${FIREBASE_URL}/users/${username}/ip.json?auth=${FIREBASE_TOKEN}`,{method:'PUT',body:JSON.stringify(userIp)});
 }
 currentUser=username;localStorage.setItem('chat_user',currentUser);checkBanAndInitialize();
-}catch(err){alert("Connection error. Please try again.")}
+}catch(err){alert("Connection error. Please try again.");console.error(err);}
+return false;
 });
 
 logoutBtn.addEventListener('click',e=>{e.stopPropagation();localStorage.removeItem('chat_user');currentUser=null;isAdmin=false;appScreen.classList.add('hidden');authScreen.classList.remove('hidden');usernameInput.value='';passwordInput.value=''});
@@ -383,8 +385,7 @@ executeOptimisticSend(text, "");
 function executeOptimisticSend(text, mediaUrl) {
 const time = Date.now();
 const avatar = cachedAvatar || generateDefaultAvatar(currentUser);
-// Генерируем временный уникальный ID для быстрого вывода (будет заменен реальным ключом от Firebase при следующем поллинге)
-const tempId = 'temp_' + time + '_' + Math.random().toString(36.substring(2, 7));
+const tempId = 'temp_' + time + '_' + Math.random().toString(36).substring(2, 7);
 
 const date = new Date(time);
 const timeStr = `${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
@@ -541,7 +542,6 @@ else{
 chatInputContainer.style.display='block';
 const msgRes=await fetch(`${FIREBASE_URL}/messages/${currentChannel}.json?auth=${FIREBASE_TOKEN}`);
 const messages=await msgRes.json()||{};
-// ИСПРАВЛЕНИЕ: Сортируем строго по уникальному ID ключа Firebase, гарантируя правильный хронологический порядок у всех!
 const msgEntries=Object.entries(messages).sort((a,b)=>a[0].localeCompare(b[0]));
 const newHash=JSON.stringify(msgEntries.map(e=>e[0]));
 if(newHash!==lastMessagesHash){
