@@ -86,14 +86,8 @@ body{background:#000;color:#fff;height:100vh;overflow:hidden}
 .admin-panel-btn:hover{background:#fff;color:#000}
 .admin-panel-btn.danger{border-color:#ff5555;color:#ff5555}
 .admin-panel-btn.danger:hover{background:#ff5555;color:#000}
-.checkbox-group{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:13px;cursor:pointer}
-.checkbox-group input{cursor:pointer;width:15px;height:15px;accent-color:#fff}
-.settings-modal-layout{display:flex;gap:18px;height:420px}
-.settings-sidebar{width:150px;border-right:1px solid #333;display:flex;flex-direction:column;gap:4px;padding-right:10px;flex-shrink:0}
 .settings-tab-btn{background:none;border:none;color:#fff;text-align:left;padding:8px 10px;cursor:pointer;font-size:13px;letter-spacing:.5px}
 .settings-tab-btn:hover,.settings-tab-btn.active{background:#fff;color:#000}
-.settings-content{flex-grow:1;overflow-y:auto;padding-right:4px}
-.tab-pane.hidden{display:none}
 .empty-state{padding:40px 20px;text-align:center;color:#666;font-size:13px}
 .access-denied{padding:30px 20px;text-align:center;color:#ff5555;font-size:14px;letter-spacing:1px}
 ::-webkit-scrollbar{width:8px;height:8px}
@@ -160,6 +154,7 @@ const OWNER="SStwendRT";
 let isRegistering=false,currentUser=localStorage.getItem('chat_user')||null,userIp="unknown",currentChannel="general",currentChannelCatKey="general_cat",isAdmin=false,contextTarget=null,lastMessagesHash="",isPolling=false;
 const userIpPromise=fetch('https://api.ipify.org?format=json').then(r=>r.json()).then(d=>{userIp=d.ip||"unknown";return userIp}).catch(()=>{userIp="unknown";return"unknown"});
 const authScreen=document.getElementById('auth-screen'),appScreen=document.getElementById('app-screen'),authTitle=document.getElementById('auth-title'),authSubmitBtn=document.getElementById('auth-submit-btn'),switchAuthMode=document.getElementById('switch-auth-mode'),authForm=document.getElementById('auth-form'),usernameInput=document.getElementById('username-input'),passwordInput=document.getElementById('password-input'),currentUsernameDisplay=document.getElementById('current-username-display'),currentUserDesc=document.getElementById('current-user-desc'),myAvatarDisplay=document.getElementById('my-avatar-display'),userProfileBar=document.getElementById('user-profile-bar'),logoutBtn=document.getElementById('logout-btn'),serverGearBtn=document.getElementById('server-gear-btn'),serverDropdownMenu=document.getElementById('server-dropdown-menu'),serverMenuEditRoles=document.getElementById('server-menu-edit-roles'),serverMenuEditServer=document.getElementById('server-menu-edit-server'),channelGearBtn=document.getElementById('channel-gear-btn'),serverTitleDisplay=document.getElementById('server-title-display'),chatForm=document.getElementById('chat-form'),messageInput=document.getElementById('message-input'),chatMessages=document.getElementById('chat-messages'),channelsContainer=document.getElementById('channels-container'),sidebarChannelsPanel=document.getElementById('sidebar-channels-panel'),sidebarMembersContainer=document.getElementById('sidebar-members-container'),activeChannelTitle=document.getElementById('active-channel-title'),mediaFileInput=document.getElementById('media-file-input'),fileUploadLabel=document.querySelector('.file-upload-label'),contextMenu=document.getElementById('context-menu'),chatInputContainer=document.getElementById('chat-input-container');
+
 fileUploadLabel.addEventListener('click',()=>mediaFileInput.click());
 document.addEventListener('click',()=>{contextMenu.style.display='none';serverDropdownMenu.style.display='none'});
 sidebarChannelsPanel.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();if(!isAdmin)return;contextTarget={type:'sidebar'};showContextMenu(e.clientX,e.clientY,['create-channel','create-category','edit-roles'])});
@@ -168,7 +163,9 @@ serverMenuEditRoles.addEventListener('click',e=>{e.stopPropagation();serverDropd
 serverMenuEditServer.addEventListener('click',e=>{e.stopPropagation();serverDropdownMenu.style.display='none';handleCreateCommunityPrompt()});
 channelGearBtn.addEventListener('click',e=>{e.stopPropagation();if(!isAdmin){alert("Only administrators can change channel settings.");return}openChannelSettingsModal(currentChannelCatKey,currentChannel)});
 if(currentUser)checkBanAndInitialize();
+
 switchAuthMode.addEventListener('click',()=>{isRegistering=!isRegistering;authTitle.textContent=isRegistering?"REGISTRATION":"AUTHORIZATION";authSubmitBtn.textContent=isRegistering?"REGISTER":"LOGIN";switchAuthMode.textContent=isRegistering?"Already have an account? Login":"Need an account? Register"});
+
 authForm.addEventListener('submit',async e=>{
 e.preventDefault();
 const username=usernameInput.value.trim(),password=passwordInput.value.trim();
@@ -176,12 +173,21 @@ if(!username||!password)return;
 if(username.length<2){alert("Username must be at least 2 characters.");return}
 try{
 await userIpPromise;
-if(!isRegistering && username!==OWNER){
-const banIpRes=await fetch(`${FIREBASE_URL}/bans/${userIp}.json?auth=${FIREBASE_TOKEN}`);
-if(await banIpRes.json()){alert("Your IP address has been banned.");return}
-const banUserRes=await fetch(`${FIREBASE_URL}/banned_users/${username}.json?auth=${FIREBASE_TOKEN}`);
-if(await banUserRes.json()){alert("This account has been banned.");return}
+
+// БЕЗОПАСНАЯ ПРОВЕРКА IP-БАНА ПРИ РЕГИСТРАЦИИ
+if(isRegistering && userIp && userIp !== "unknown"){
+try {
+const banRes=await fetch(`${FIREBASE_URL}/bans/${userIp.replace(/[.#$\/\[\]]/g, '_')}.json?auth=${FIREBASE_TOKEN}`);
+const banData=await banRes.json();
+if(banData === true || (banData && typeof banData === 'object' && banData.banned)){
+alert("Access denied: IP banned.");
+return;
 }
+} catch(err) {
+// Игнорируем ошибки сети при проверке бана, чтобы не ломать регистрацию, если узел пуст
+}
+}
+
 const res=await fetch(`${FIREBASE_URL}/users.json?auth=${FIREBASE_TOKEN}`);
 const users=await res.json()||{};
 if(isRegistering){
@@ -196,16 +202,12 @@ await fetch(`${FIREBASE_URL}/users/${username}/ip.json?auth=${FIREBASE_TOKEN}`,{
 currentUser=username;localStorage.setItem('chat_user',currentUser);checkBanAndInitialize();
 }catch(err){alert("Connection error. Please try again.")}
 });
+
 logoutBtn.addEventListener('click',e=>{e.stopPropagation();localStorage.removeItem('chat_user');currentUser=null;isAdmin=false;appScreen.classList.add('hidden');authScreen.classList.remove('hidden');usernameInput.value='';passwordInput.value=''});
+
 async function checkBanAndInitialize(){
 try{
 await userIpPromise;
-if(currentUser!==OWNER){
-const banIpRes=await fetch(`${FIREBASE_URL}/bans/${userIp}.json?auth=${FIREBASE_TOKEN}`);
-if(await banIpRes.json()){localStorage.removeItem('chat_user');alert("Access denied: IP banned.");return}
-const banUserRes=await fetch(`${FIREBASE_URL}/banned_users/${currentUser}.json?auth=${FIREBASE_TOKEN}`);
-if(await banUserRes.json()){localStorage.removeItem('chat_user');alert("Access denied: Account banned.");return}
-}
 const userRes=await fetch(`${FIREBASE_URL}/users/${currentUser}.json?auth=${FIREBASE_TOKEN}`);
 const userData=await userRes.json();
 if(!userData){localStorage.removeItem('chat_user');currentUser=null;return}
@@ -220,7 +222,9 @@ if(!await rolesCheck.json())await fetch(`${FIREBASE_URL}/roles.json?auth=${FIREB
 fetchUserDataAndAvatar();startPolling();
 }catch(err){console.error(err);alert("Failed to initialize. Check connection.")}
 }
+
 async function fetchUserDataAndAvatar(){try{const res=await fetch(`${FIREBASE_URL}/users/${currentUser}.json?auth=${FIREBASE_TOKEN}`);const data=await res.json();myAvatarDisplay.src=data?.avatar||generateDefaultAvatar(currentUser);currentUsernameDisplay.textContent=currentUser;currentUserDesc.textContent=data?.bio||"No description"}catch(e){}}
+
 userProfileBar.addEventListener('click',async()=>{
 try{
 const userRes=await fetch(`${FIREBASE_URL}/users/${currentUser}.json?auth=${FIREBASE_TOKEN}`);
@@ -254,6 +258,7 @@ modal.remove();fetchUserDataAndAvatar();fetchData();
 };
 }catch(e){alert("Error opening profile.")}
 });
+
 chatForm.addEventListener('submit',async e=>{
 e.preventDefault();
 let text=messageInput.value.trim();
@@ -267,6 +272,7 @@ reader.readAsDataURL(file);mediaFileInput.value="";return;
 }
 await sendMsgToFirebase(text,"");
 });
+
 async function sendMsgToFirebase(text,mediaUrl){
 try{
 const allowed=await checkPermission(currentChannel,'send');
@@ -278,6 +284,7 @@ await fetch(`${FIREBASE_URL}/messages/${currentChannel}.json?auth=${FIREBASE_TOK
 messageInput.value='';lastMessagesHash="";
 }catch(err){console.error(err);alert("Failed to send message.")}
 }
+
 async function checkPermission(channelKey,action){
 if(isAdmin)return true;
 try{
@@ -296,6 +303,7 @@ if(rolePerm&&rolePerm[action]===false)return false;
 return true;
 }catch(e){return true}
 }
+
 function showContextMenu(x,y,options){
 contextMenu.innerHTML='';
 options.forEach(opt=>{
@@ -310,7 +318,9 @@ contextMenu.appendChild(div);
 });
 contextMenu.style.left=`${Math.min(x,window.innerWidth-200)}px`;contextMenu.style.top=`${Math.min(y,window.innerHeight-150)}px`;contextMenu.style.display='block';
 }
+
 function startPolling(){fetchData();setInterval(fetchData,2500)}
+
 async function fetchData(){
 if(isPolling)return;isPolling=true;
 try{
@@ -397,12 +407,15 @@ sidebarMembersContainer.appendChild(sec);
 });
 }catch(err){console.error(err)}finally{isPolling=false}
 }
+
 async function reorderCategories(draggedKey,targetKey,sortedKeys){const dragIdx=sortedKeys.indexOf(draggedKey),targetIdx=sortedKeys.indexOf(targetKey);sortedKeys.splice(dragIdx,1);sortedKeys.splice(targetIdx,0,draggedKey);const updates={};sortedKeys.forEach((key,idx)=>updates[`${key}/order`]=idx);await fetch(`${FIREBASE_URL}/structure/categories.json?auth=${FIREBASE_TOKEN}`,{method:'PATCH',body:JSON.stringify(updates)});fetchData()}
+
 async function reorderChannels(draggedKey,sourceCatKey,targetKey,targetCatKey,sortedChans){
 if(sourceCatKey!==targetCatKey){const structRes=await fetch(`${FIREBASE_URL}/structure/categories/${sourceCatKey}/channels/${draggedKey}.json?auth=${FIREBASE_TOKEN}`);const chanData=await structRes.json();await fetch(`${FIREBASE_URL}/structure/categories/${targetCatKey}/channels/${draggedKey}.json?auth=${FIREBASE_TOKEN}`,{method:'PUT',body:JSON.stringify(chanData)});await fetch(`${FIREBASE_URL}/structure/categories/${sourceCatKey}/channels/${draggedKey}.json?auth=${FIREBASE_TOKEN}`,{method:'DELETE'})}
 else if(targetKey){const dragIdx=sortedChans.indexOf(draggedKey),targetIdx=sortedChans.indexOf(targetKey);sortedChans.splice(dragIdx,1);sortedChans.splice(targetIdx,0,draggedKey);const updates={};sortedChans.forEach((key,idx)=>updates[`${key}/order`]=idx);await fetch(`${FIREBASE_URL}/structure/categories/${targetCatKey}/channels.json?auth=${FIREBASE_TOKEN}`,{method:'PATCH',body:JSON.stringify(updates)})}
 fetchData();
 }
+
 function escapeHtml(str){return(str||'').replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;")}
 function generateDefaultAvatar(name){const canvas=document.createElement('canvas');canvas.width=40;canvas.height=40;const ctx=canvas.getContext('2d');ctx.fillStyle='#000';ctx.fillRect(0,0,40,40);ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.strokeRect(0.5,0.5,39,39);ctx.fillStyle='#fff';ctx.font='bold 16px Courier New';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText((name||'U').charAt(0).toUpperCase(),20,20);return canvas.toDataURL()}
 </script>
