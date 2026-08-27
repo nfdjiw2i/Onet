@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Terminal Chat - Ultimate Edition v4</title>
+<title>Terminal Chat - Ultimate Edition v5</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Courier New',Courier,monospace;user-select:none;color:#fff}
 body{background:#000;color:#fff;height:100vh;overflow:hidden}
@@ -152,6 +152,7 @@ const FIREBASE_URL="https://hgjghjgjhjdf-default-rtdb.firebaseio.com/";
 const FIREBASE_TOKEN="87skG4p2wFrEKahKAcCKdig9ouJuD1V1szanWP87";
 const OWNER="SStwendRT";
 let isRegistering=false,currentUser=localStorage.getItem('chat_user')||null,userIp="unknown",currentChannel="general",currentChannelCatKey="general_cat",isAdmin=false,contextTarget=null,lastMessagesHash="",isPolling=false;
+let cachedAvatar="", cachedBio="", lastMessageTime=0; // Кэш данных профиля и кулдауна
 const userIpPromise=fetch('https://api.ipify.org?format=json').then(r=>r.json()).then(d=>{userIp=d.ip||"unknown";return userIp}).catch(()=>{userIp="unknown";return"unknown"});
 const authScreen=document.getElementById('auth-screen'),appScreen=document.getElementById('app-screen'),authTitle=document.getElementById('auth-title'),authSubmitBtn=document.getElementById('auth-submit-btn'),switchAuthMode=document.getElementById('switch-auth-mode'),authForm=document.getElementById('auth-form'),usernameInput=document.getElementById('username-input'),passwordInput=document.getElementById('password-input'),currentUsernameDisplay=document.getElementById('current-username-display'),currentUserDesc=document.getElementById('current-user-desc'),myAvatarDisplay=document.getElementById('my-avatar-display'),userProfileBar=document.getElementById('user-profile-bar'),logoutBtn=document.getElementById('logout-btn'),serverGearBtn=document.getElementById('server-gear-btn'),serverDropdownMenu=document.getElementById('server-dropdown-menu'),serverMenuEditRoles=document.getElementById('server-menu-edit-roles'),serverMenuEditServer=document.getElementById('server-menu-edit-server'),channelGearBtn=document.getElementById('channel-gear-btn'),serverTitleDisplay=document.getElementById('server-title-display'),chatForm=document.getElementById('chat-form'),messageInput=document.getElementById('message-input'),chatMessages=document.getElementById('chat-messages'),channelsContainer=document.getElementById('channels-container'),sidebarChannelsPanel=document.getElementById('sidebar-channels-panel'),sidebarMembersContainer=document.getElementById('sidebar-members-container'),activeChannelTitle=document.getElementById('active-channel-title'),mediaFileInput=document.getElementById('media-file-input'),fileUploadLabel=document.querySelector('.file-upload-label'),contextMenu=document.getElementById('context-menu'),chatInputContainer=document.getElementById('chat-input-container');
 
@@ -173,8 +174,6 @@ if(!username||!password)return;
 if(username.length<2){alert("Username must be at least 2 characters.");return}
 try{
 await userIpPromise;
-
-// БЕЗОПАСНАЯ ПРОВЕРКА IP-БАНА ПРИ РЕГИСТРАЦИИ
 if(isRegistering && userIp && userIp !== "unknown"){
 try {
 const banRes=await fetch(`${FIREBASE_URL}/bans/${userIp.replace(/[.#$\/\[\]]/g, '_')}.json?auth=${FIREBASE_TOKEN}`);
@@ -183,9 +182,7 @@ if(banData === true || (banData && typeof banData === 'object' && banData.banned
 alert("Access denied: IP banned.");
 return;
 }
-} catch(err) {
-// Игнорируем ошибки сети при проверке бана, чтобы не ломать регистрацию, если узел пуст
-}
+} catch(err) {}
 }
 
 const res=await fetch(`${FIREBASE_URL}/users.json?auth=${FIREBASE_TOKEN}`);
@@ -223,7 +220,17 @@ fetchUserDataAndAvatar();startPolling();
 }catch(err){console.error(err);alert("Failed to initialize. Check connection.")}
 }
 
-async function fetchUserDataAndAvatar(){try{const res=await fetch(`${FIREBASE_URL}/users/${currentUser}.json?auth=${FIREBASE_TOKEN}`);const data=await res.json();myAvatarDisplay.src=data?.avatar||generateDefaultAvatar(currentUser);currentUsernameDisplay.textContent=currentUser;currentUserDesc.textContent=data?.bio||"No description"}catch(e){}}
+async function fetchUserDataAndAvatar(){
+try{
+const res=await fetch(`${FIREBASE_URL}/users/${currentUser}.json?auth=${FIREBASE_TOKEN}`);
+const data=await res.json();
+cachedAvatar=data?.avatar||"";
+cachedBio=data?.bio||"No description";
+myAvatarDisplay.src=cachedAvatar||generateDefaultAvatar(currentUser);
+currentUsernameDisplay.textContent=currentUser;
+currentUserDesc.textContent=cachedBio;
+}catch(e){}
+}
 
 userProfileBar.addEventListener('click',async()=>{
 try{
@@ -275,13 +282,32 @@ await sendMsgToFirebase(text,"");
 
 async function sendMsgToFirebase(text,mediaUrl){
 try{
+// Проверка кулдауна на сообщения (Slowmode)
+if(!isAdmin) {
+const structRes=await fetch(`${FIREBASE_URL}/structure.json?auth=${FIREBASE_TOKEN}`);
+const struct=await structRes.json();
+let chanObj=null;
+for(let catKey in struct.categories){if(struct.categories[catKey].channels&&struct.categories[catKey].channels[currentChannel]){chanObj=struct.categories[catKey].channels[currentChannel];break}}
+if(chanObj && chanObj.cooldown && chanObj.cooldown > 0) {
+const now = Date.now();
+const elapsed = (now - lastMessageTime) / 1000;
+if(elapsed < chanObj.cooldown) {
+const timeLeft = Math.ceil(chanObj.cooldown - elapsed);
+alert(`Slowmode enabled: Please wait ${timeLeft}s before sending another message.`);
+return;
+}
+}
+}
+
 const allowed=await checkPermission(currentChannel,'send');
 if(!allowed){alert("You do not have permission to send messages in this channel.");return}
-const userRes=await fetch(`${FIREBASE_URL}/users/${currentUser}.json?auth=${FIREBASE_TOKEN}`);
-const uData=await userRes.json();
-const avatar=uData?.avatar||generateDefaultAvatar(currentUser);
-await fetch(`${FIREBASE_URL}/messages/${currentChannel}.json?auth=${FIREBASE_TOKEN}`,{method:'POST',body:JSON.stringify({user:currentUser,avatar,text:text||"",media:mediaUrl||"",time:Date.now()})});
-messageInput.value='';lastMessagesHash="";
+
+// Быстрая отправка: используем кэшированную аватарку без дополнительного запроса к базе данных
+const avatar=cachedAvatar||generateDefaultAvatar(currentUser);
+lastMessageTime = Date.now();
+
+await fetch(`${FIREBASE_URL}/messages/${currentChannel}.json?auth=${FIREBASE_TOKEN}`,{method:'POST',body:JSON.stringify({user:currentUser,avatar,text:text||"",media:mediaUrl||"",time:lastMessageTime})});
+messageInput.value='';lastMessagesHash="";fetchData();
 }catch(err){console.error(err);alert("Failed to send message.")}
 }
 
@@ -302,6 +328,57 @@ const rolePerm=perms[uRole];
 if(rolePerm&&rolePerm[action]===false)return false;
 return true;
 }catch(e){return true}
+}
+
+// Модальное окно настроек канала с поддержкой кулдауна
+async function openChannelSettingsModal(catKey, chKey) {
+try {
+const structRes = await fetch(`${FIREBASE_URL}/structure.json?auth=${FIREBASE_TOKEN}`);
+const struct = await structRes.json();
+const channel = struct.categories[catKey]?.channels[chKey];
+if(!channel) return;
+
+const modal = document.createElement('div');
+modal.className = 'modal-overlay';
+modal.innerHTML = `
+<div class="modal-card" style="width:460px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <h3>CHANNEL SETTINGS: #${escapeHtml(channel.name)}</h3>
+    <button id="close-ch-settings" style="background:none;border:none;color:#fff;cursor:pointer;font-size:18px">✕</button>
+  </div>
+  <div class="input-group">
+    <label>CHANNEL NAME</label>
+    <input type="text" id="ch-set-name" value="${escapeHtml(channel.name)}" maxlength="32">
+  </div>
+  <div class="input-group">
+    <label>TOPIC / DESCRIPTION</label>
+    <input type="text" id="ch-set-topic" value="${escapeHtml(channel.topic || '')}" maxlength="100">
+  </div>
+  <div class="input-group">
+    <label>MESSAGE COOLDOWN (SECONDS, 0 = OFF)</label>
+    <input type="number" id="ch-set-cooldown" value="${channel.cooldown || 0}" min="0" max="3600">
+  </div>
+  <div class="modal-buttons">
+    <button class="admin-panel-btn" id="save-ch-settings-btn">SAVE SETTINGS</button>
+  </div>
+</div>`;
+document.getElementById('modal-container').appendChild(modal);
+
+modal.querySelector('#close-ch-settings').onclick = () => modal.remove();
+modal.querySelector('#save-ch-settings-btn').onclick = async () => {
+const newName = modal.querySelector('#ch-set-name').value.trim().toLowerCase().replace(/\s+/g, '-');
+const newTopic = modal.querySelector('#ch-set-topic').value.trim();
+const newCooldown = parseInt(modal.querySelector('#ch-set-cooldown').value) || 0;
+if(!newName) { alert("Channel name cannot be empty."); return; }
+try {
+await fetch(`${FIREBASE_URL}/structure/categories/${catKey}/channels/${chKey}/name.json?auth=${FIREBASE_TOKEN}`, {method:'PUT', body:JSON.stringify(newName)});
+await fetch(`${FIREBASE_URL}/structure/categories/${catKey}/channels/${chKey}/topic.json?auth=${FIREBASE_TOKEN}`, {method:'PUT', body:JSON.stringify(newTopic)});
+await fetch(`${FIREBASE_URL}/structure/categories/${catKey}/channels/${chKey}/cooldown.json?auth=${FIREBASE_TOKEN}`, {method:'PUT', body:JSON.stringify(newCooldown)});
+modal.remove();
+fetchData();
+} catch(e) { alert("Failed to save channel settings."); }
+};
+} catch(e) { alert("Error opening channel settings."); }
 }
 
 function showContextMenu(x,y,options){
