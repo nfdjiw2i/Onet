@@ -11,6 +11,7 @@
             padding: 0;
             font-family: 'Courier New', Courier, monospace;
             user-select: none;
+            color: #ffffff;
         }
 
         body {
@@ -50,6 +51,7 @@
             text-align: center;
             letter-spacing: 2px;
             font-size: 20px;
+            color: #ffffff;
         }
 
         .input-group {
@@ -61,6 +63,7 @@
             margin-bottom: 8px;
             font-size: 12px;
             letter-spacing: 1px;
+            color: #ffffff;
         }
 
         .input-group input, .input-group select {
@@ -97,6 +100,7 @@
             font-size: 12px;
             cursor: pointer;
             text-decoration: underline;
+            color: #ffffff;
         }
 
         /* Main App Layout */
@@ -123,6 +127,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            color: #ffffff;
         }
 
         .channels-list {
@@ -143,7 +148,7 @@
         .category-header {
             font-size: 11px;
             letter-spacing: 1px;
-            color: #888888;
+            color: #ffffff;
             padding: 4px 6px;
             display: flex;
             justify-content: space-between;
@@ -152,7 +157,6 @@
         }
 
         .category-header:hover {
-            color: #ffffff;
             background: #111111;
         }
 
@@ -171,7 +175,9 @@
             letter-spacing: 1px;
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 6px;
+            color: #ffffff;
         }
 
         .channel-item.dragging {
@@ -183,6 +189,24 @@
             border: 1px solid #ffffff;
         }
 
+        .channel-actions {
+            display: none;
+            gap: 4px;
+        }
+
+        .channel-item:hover .channel-actions {
+            display: flex;
+        }
+
+        .channel-action-btn {
+            background: none;
+            border: none;
+            color: #ffffff;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        /* Profile Panel Styles as requested */
         .user-profile {
             padding: 15px;
             border-top: 1px solid #ffffff;
@@ -191,6 +215,7 @@
             align-items: center;
             gap: 10px;
             cursor: pointer;
+            background: #000;
         }
 
         .user-profile:hover {
@@ -198,18 +223,20 @@
         }
 
         .user-avatar-sm {
-            width: 32px;
-            height: 32px;
+            width: 36px;
+            height: 36px;
             border: 1px solid #ffffff;
             object-fit: cover;
             background: #222;
+            flex-shrink: 0;
         }
 
         .user-info-text {
             flex-grow: 1;
             overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
         }
 
         .logout-btn {
@@ -242,6 +269,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            color: #ffffff;
         }
 
         .chat-messages {
@@ -253,13 +281,13 @@
             gap: 20px;
         }
 
-        /* Message format: avatar + (time above, message text forward) */
         .message {
             font-size: 14px;
             line-height: 1.4;
             display: flex;
             gap: 12px;
             align-items: flex-start;
+            color: #ffffff;
         }
 
         .msg-avatar {
@@ -269,7 +297,6 @@
             object-fit: cover;
             background: #222;
             flex-shrink: 0;
-            border-radius: 0; /* Square avatar as requested */
         }
 
         .msg-content {
@@ -288,15 +315,17 @@
         .message .msg-user {
             font-weight: bold;
             font-size: 13px;
+            color: #ffffff;
         }
 
         .message .msg-time {
             font-size: 10px;
-            color: #888888;
+            color: #ffffff;
         }
 
         .message .msg-text {
             word-break: break-all;
+            color: #ffffff;
         }
 
         .message img, .message video {
@@ -326,6 +355,7 @@
             height: 100%;
             display: flex;
             align-items: center;
+            color: #ffffff;
         }
 
         .file-upload-label:hover {
@@ -376,7 +406,7 @@
             font-size: 11px;
             letter-spacing: 1px;
             margin-bottom: 10px;
-            color: #888888;
+            color: #ffffff;
         }
 
         .member-item {
@@ -389,6 +419,7 @@
             cursor: pointer;
             padding: 4px;
             border: 1px solid transparent;
+            color: #ffffff;
         }
 
         .member-item:hover {
@@ -402,7 +433,7 @@
             object-fit: cover;
         }
 
-        /* Context Menu (Right Click) */
+        /* Context Menu */
         #context-menu {
             position: fixed;
             background: #000000;
@@ -418,6 +449,7 @@
             font-size: 12px;
             cursor: pointer;
             letter-spacing: 1px;
+            color: #ffffff;
         }
 
         .context-menu-item:hover {
@@ -443,15 +475,17 @@
             background: #000000;
             border: 1px solid #ffffff;
             padding: 30px;
-            width: 450px;
+            width: 480px;
             max-height: 85vh;
             overflow-y: auto;
+            color: #ffffff;
         }
 
         .modal-card h3 {
             margin-bottom: 20px;
             font-size: 16px;
             letter-spacing: 1px;
+            color: #ffffff;
         }
 
         .modal-buttons {
@@ -484,6 +518,7 @@
             margin-bottom: 12px;
             font-size: 12px;
             cursor: pointer;
+            color: #ffffff;
         }
 
         .checkbox-group input {
@@ -502,7 +537,7 @@
         <div class="context-menu-item" id="ctx-create-category">Create Category</div>
         <div class="context-menu-item" id="ctx-create-community">Create Community</div>
         <div class="context-menu-item" id="ctx-edit">Edit Settings</div>
-        <div class="context-menu-item" id="ctx-permissions" style="color: yellow;">Permissions</div>
+        <div class="context-menu-item" id="ctx-permissions">Permissions</div>
         <div class="context-menu-item" id="ctx-delete" style="color: red;">Delete</div>
     </div>
 
@@ -534,11 +569,12 @@
                 <span style="font-size: 16px; cursor: pointer;" id="gear-settings-btn">⚙</span>
             </div>
             <div class="channels-list" id="channels-container"></div>
+            <!-- Profile Layout: Avatar top-left, Nick top-right, Description under -->
             <div class="user-profile" id="user-profile-bar">
-                <img id="my-avatar-display" class="user-avatar-sm" src="" alt="">
+                <img id="my-avatar-display" class="user-avatar-sm" src="" alt="" title="Click to change avatar">
                 <div class="user-info-text">
-                    <div id="current-username-display" style="font-weight: bold;">User</div>
-                    <div style="font-size: 9px;">Edit Profile</div>
+                    <div id="current-username-display" style="font-weight: bold; font-size: 13px;">User</div>
+                    <div id="current-user-desc" style="font-size: 10px; color: #ccc;">Edit Profile</div>
                 </div>
                 <button class="logout-btn" id="logout-btn">LOGOUT</button>
             </div>
@@ -576,7 +612,7 @@
         let userIp = "unknown";
         let currentChannel = "general";
         let isAdmin = false;
-        let contextTarget = null; // { type: 'channel'|'category'|'server'|'sidebar', id, name, catId }
+        let contextTarget = null; 
 
         fetch('https://api.ipify.org?format=json')
             .then(res => res.json())
@@ -593,6 +629,7 @@
         const passwordInput = document.getElementById('password-input');
         
         const currentUsernameDisplay = document.getElementById('current-username-display');
+        const currentUserDesc = document.getElementById('current-user-desc');
         const myAvatarDisplay = document.getElementById('my-avatar-display');
         const userProfileBar = document.getElementById('user-profile-bar');
         const logoutBtn = document.getElementById('logout-btn');
@@ -612,11 +649,8 @@
         const chatInputContainer = document.getElementById('chat-input-container');
 
         fileUploadLabel.addEventListener('click', () => mediaFileInput.click());
-
-        // Global context menu hide
         document.addEventListener('click', () => { contextMenu.style.display = 'none'; });
 
-        // Right-click on left sidebar empty area or header
         sidebarChannelsPanel.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -627,7 +661,7 @@
         gearSettingsBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             if (!isAdmin) {
-                alert("Only admin (SStwendRT) can manage server settings.");
+                alert("Only admin can manage server settings.");
                 return;
             }
             openRolesModal();
@@ -667,7 +701,7 @@
                     }
                     await fetch(`${FIREBASE_URL}/users/${username}.json?auth=${FIREBASE_TOKEN}`, {
                         method: 'PUT',
-                        body: JSON.stringify({ password, ip: userIp, avatar: "", role: "member", joined: Date.now() })
+                        body: JSON.stringify({ password, ip: userIp, avatar: "", bio: "Member", role: "member", joined: Date.now() })
                     });
                 } else {
                     if (!users[username] || users[username].password !== password) {
@@ -708,12 +742,10 @@
                 appScreen.classList.remove('hidden');
                 currentUsernameDisplay.textContent = currentUser;
 
-                // Server Title
                 const sNameRes = await fetch(`${FIREBASE_URL}/server/name.json?auth=${FIREBASE_TOKEN}`);
                 const sName = await sNameRes.json();
                 serverTitleDisplay.textContent = sName || "MAIN SERVER";
 
-                // Default structure if empty
                 const rootRes = await fetch(`${FIREBASE_URL}/structure.json?auth=${FIREBASE_TOKEN}`);
                 if (!await rootRes.json()) {
                     await fetch(`${FIREBASE_URL}/structure.json?auth=${FIREBASE_TOKEN}`, {
@@ -724,7 +756,7 @@
                                     name: "TEXT CHANNELS",
                                     order: 0,
                                     channels: {
-                                        "general": { name: "general", order: 0, permissions: {} }
+                                        "general": { name: "general", topic: "General chat", order: 0, permissions: {} }
                                     }
                                 }
                             }
@@ -745,11 +777,13 @@
                 const data = await res.json();
                 myAvatarDisplay.src = data?.avatar || generateDefaultAvatar(currentUser);
                 currentUsernameDisplay.textContent = currentUser;
+                currentUserDesc.textContent = data?.bio || "No description provided";
             } catch (e) {}
         }
 
         userProfileBar.addEventListener('click', async () => {
             const newName = prompt("New Username:", currentUser);
+            const newBio = prompt("New Profile Description:", currentUserDesc.textContent);
             const newAvatar = prompt("New Avatar Image URL (or leave blank):", "");
             
             try {
@@ -762,16 +796,22 @@
                         alert("Username already taken!");
                         return;
                     }
-                    userData.name = newName;
                     await fetch(`${FIREBASE_URL}/users/${newName}.json?auth=${FIREBASE_TOKEN}`, {
                         method: 'PUT',
-                        body: JSON.stringify(userData)
+                        body: JSON.stringify({ ...userData, name: newName })
                     });
                     await fetch(`${FIREBASE_URL}/users/${currentUser}.json?auth=${FIREBASE_TOKEN}`, {
                         method: 'DELETE'
                     });
                     currentUser = newName;
                     localStorage.setItem('chat_user', currentUser);
+                }
+
+                if (newBio !== null) {
+                    await fetch(`${FIREBASE_URL}/users/${currentUser}/bio.json?auth=${FIREBASE_TOKEN}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(newBio)
+                    });
                 }
 
                 if (newAvatar !== null && newAvatar !== "") {
@@ -848,8 +888,13 @@
                 const uRole = uData?.role || 'member';
 
                 const perms = chanObj.permissions || {};
-                const rolePerm = perms[uRole];
+                
+                // Individual user permission override check
+                if (perms.users && perms.users[currentUser] && perms.users[currentUser][action] !== undefined) {
+                    return perms.users[currentUser][action];
+                }
 
+                const rolePerm = perms[uRole];
                 if (rolePerm && rolePerm[action] === false) return false;
                 return true;
             } catch (e) {
@@ -867,15 +912,14 @@
                     div.textContent = 'Delete';
                     div.onclick = () => handleDeleteTarget();
                 } else if (opt === 'edit') {
-                    div.textContent = 'Edit Name';
+                    div.textContent = 'Edit Settings';
                     div.onclick = () => handleEditTarget();
                 } else if (opt === 'permissions') {
-                    div.style.color = 'yellow';
                     div.textContent = 'Permissions';
                     div.onclick = () => handlePermissionsTarget();
                 } else if (opt === 'create-channel') {
                     div.textContent = 'Create Channel';
-                    div.onclick = () => handleCreateChannelPrompt();
+                    div.onclick = () => handleCreateChannelPrompt(contextTarget && contextTarget.type === 'category' ? contextTarget.id : null);
                 } else if (opt === 'create-category') {
                     div.textContent = 'Create Category';
                     div.onclick = () => handleCreateCategoryPrompt();
@@ -909,7 +953,6 @@
                 channelsContainer.innerHTML = '';
                 let channelExists = false;
 
-                // Sort categories by order
                 const sortedCategories = Object.keys(structure.categories).sort((a, b) => {
                     return (structure.categories[a].order || 0) - (structure.categories[b].order || 0);
                 });
@@ -921,7 +964,6 @@
                     catDiv.draggable = isAdmin;
                     catDiv.dataset.catKey = catKey;
 
-                    // Drag and Drop Categories
                     catDiv.addEventListener('dragstart', (e) => {
                         e.stopPropagation();
                         e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'category', key: catKey }));
@@ -954,6 +996,17 @@
                     const chansContainer = document.createElement('div');
                     chansContainer.className = 'category-channels';
 
+                    // Drop target for channel migration into this category via drag & drop
+                    chansContainer.addEventListener('dragover', (e) => e.preventDefault());
+                    chansContainer.addEventListener('drop', async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const data = JSON.parse(e.dataTransfer.getData('text/plain') || '{}');
+                        if (data.type === 'channel' && data.catKey !== catKey) {
+                            await reorderChannels(data.key, data.catKey, null, catKey, []);
+                        }
+                    });
+
                     if (cat.channels) {
                         const sortedChans = Object.keys(cat.channels).sort((a, b) => {
                             return (cat.channels[a].order || 0) - (cat.channels[b].order || 0);
@@ -966,7 +1019,14 @@
                             const chDiv = document.createElement('div');
                             chDiv.className = `channel-item ${currentChannel === chKey ? 'active' : ''}`;
                             chDiv.draggable = isAdmin;
-                            chDiv.innerHTML = `<span># ${ch.name}</span>`;
+                            
+                            // Added gear icon on channel hover for quick admin settings access
+                            chDiv.innerHTML = `
+                                <span># ${ch.name}</span>
+                                <div class="channel-actions">
+                                    ${isAdmin ? `<button class="channel-action-btn" title="Edit Settings" onclick="event.stopPropagation(); editChannelDirect('${catKey}', '${chKey}')">⚙</button>` : ''}
+                                </div>
+                            `;
 
                             chDiv.addEventListener('dragstart', (e) => {
                                 e.stopPropagation();
@@ -1014,7 +1074,7 @@
 
                 const canReadActive = await checkPermission(currentChannel, 'read');
                 if (!canReadActive) {
-                    chatMessages.innerHTML = '<div style="padding:20px; color:red;">[ACCESS DENIED] You do not have permission to read this channel.</div>';
+                    chatMessages.innerHTML = '<div style="padding:20px; color:#fff;">[ACCESS DENIED] You do not have permission to read this channel.</div>';
                     chatInputContainer.style.display = 'none';
                 } else {
                     chatInputContainer.style.display = 'block';
@@ -1028,7 +1088,6 @@
                         div.className = 'message';
                         let mediaHtml = msg.media ? (msg.media.includes('video') ? `<video src="${msg.media}" controls></video>` : `<img src="${msg.media}">`) : '';
                         
-                        // Formatting as requested: Square avatar, time above message, text forward
                         div.innerHTML = `
                             <img class="msg-avatar" src="${msg.avatar || generateDefaultAvatar(msg.user)}" alt="">
                             <div class="msg-content">
@@ -1114,7 +1173,6 @@
 
         async function reorderChannels(draggedKey, sourceCatKey, targetKey, targetCatKey, sortedChans) {
             if (sourceCatKey !== targetCatKey) {
-                // Moving channel between categories
                 const structRes = await fetch(`${FIREBASE_URL}/structure/categories/${sourceCatKey}/channels/${draggedKey}.json?auth=${FIREBASE_TOKEN}`);
                 const chanData = await structRes.json();
                 
@@ -1125,7 +1183,7 @@
                 await fetch(`${FIREBASE_URL}/structure/categories/${sourceCatKey}/channels/${draggedKey}.json?auth=${FIREBASE_TOKEN}`, {
                     method: 'DELETE'
                 });
-            } else {
+            } else if (targetKey) {
                 const dragIdx = sortedChans.indexOf(draggedKey);
                 const targetIdx = sortedChans.indexOf(targetKey);
                 sortedChans.splice(dragIdx, 1);
@@ -1155,10 +1213,8 @@
             fetchData();
         }
 
-        async function handleCreateChannelPrompt() {
+        async function handleCreateChannelPrompt(specificCatId = null) {
             if (!isAdmin) { alert("Admin only."); return; }
-            const targetCat = contextTarget && contextTarget.type === 'category' ? contextTarget.id : null;
-            
             const structRes = await fetch(`${FIREBASE_URL}/structure/categories.json?auth=${FIREBASE_TOKEN}`);
             const cats = await structRes.json() || {};
             const catKeys = Object.keys(cats);
@@ -1167,7 +1223,7 @@
                 return;
             }
 
-            const catId = targetCat || catKeys[0];
+            const catId = specificCatId || catKeys[0];
             const name = prompt("Channel Name:");
             if (!name) return;
             const key = name.toLowerCase().replace(/[^a-z0-9-_]/g, "");
@@ -1175,7 +1231,7 @@
 
             await fetch(`${FIREBASE_URL}/structure/categories/${catId}/channels/${key}.json?auth=${FIREBASE_TOKEN}`, {
                 method: 'PUT',
-                body: JSON.stringify({ name: key, order: Date.now(), permissions: {} })
+                body: JSON.stringify({ name: key, topic: "", order: Date.now(), permissions: {} })
             });
             fetchData();
         }
@@ -1203,13 +1259,24 @@
                     fetchData();
                 }
             } else if (contextTarget.type === 'channel') {
-                const newName = prompt("Edit Channel Name:", contextTarget.name);
-                if (newName) {
-                    await fetch(`${FIREBASE_URL}/structure/categories/${contextTarget.catId}/channels/${contextTarget.id}/name.json?auth=${FIREBASE_TOKEN}`, {
-                        method: 'PUT', body: JSON.stringify(newName)
-                    });
-                    fetchData();
-                }
+                editChannelDirect(contextTarget.catId, contextTarget.id);
+            }
+        }
+
+        async function editChannelDirect(catKey, chKey) {
+            const chanRes = await fetch(`${FIREBASE_URL}/structure/categories/${catKey}/channels/${chKey}.json?auth=${FIREBASE_TOKEN}`);
+            const chanData = await chanRes.json() || {};
+
+            const newName = prompt("Edit Channel Name:", chanData.name || chKey);
+            const newTopic = prompt("Edit Channel Topic / Description:", chanData.topic || "");
+            if (newName) {
+                await fetch(`${FIREBASE_URL}/structure/categories/${catKey}/channels/${chKey}/name.json?auth=${FIREBASE_TOKEN}`, {
+                    method: 'PUT', body: JSON.stringify(newName)
+                });
+                await fetch(`${FIREBASE_URL}/structure/categories/${catKey}/channels/${chKey}/topic.json?auth=${FIREBASE_TOKEN}`, {
+                    method: 'PUT', body: JSON.stringify(newTopic || "")
+                });
+                fetchData();
             }
         }
 
@@ -1231,10 +1298,13 @@
 
             const rolesRes = await fetch(`${FIREBASE_URL}/roles.json?auth=${FIREBASE_TOKEN}`);
             const roles = await rolesRes.json() || {};
+            const usersRes = await fetch(`${FIREBASE_URL}/users.json?auth=${FIREBASE_TOKEN}`);
+            const users = await usersRes.json() || {};
 
             const chanRes = await fetch(`${FIREBASE_URL}/structure/categories/${catKey}/channels/${chKey}.json?auth=${FIREBASE_TOKEN}`);
             const chanData = await chanRes.json() || {};
             const perms = chanData.permissions || {};
+            const userPerms = perms.users || {};
 
             const modal = document.createElement('div');
             modal.className = 'modal-overlay';
@@ -1257,10 +1327,25 @@
                 `;
             });
 
+            let usersPermHtml = '';
+            Object.keys(users).forEach(uName => {
+                const uPerm = userPerms[uName] || {};
+                const uCanSend = uPerm.send !== false;
+                usersPermHtml += `
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:12px;">
+                        <span>${uName}</span>
+                        <label><input type="checkbox" id="user-send-${uName}" ${uCanSend ? 'checked' : ''}> Can Send</label>
+                    </div>
+                `;
+            });
+
             modal.innerHTML = `
                 <div class="modal-card">
                     <h3>PERMISSIONS: #${contextTarget.name}</h3>
-                    <div style="max-height: 250px; overflow-y:auto;">${rolesPermHtml}</div>
+                    <div style="margin-bottom:10px; font-size:12px; font-weight:bold;">ROLES PERMISSIONS</div>
+                    <div style="max-height: 180px; overflow-y:auto; margin-bottom:15px;">${rolesPermHtml}</div>
+                    <div style="margin-bottom:10px; font-size:12px; font-weight:bold;">INDIVIDUAL USER PERMISSIONS</div>
+                    <div style="max-height: 120px; overflow-y:auto; border:1px solid #fff; padding:10px;">${usersPermHtml}</div>
                     <div class="modal-buttons">
                         <button class="admin-panel-btn" id="save-perms">SAVE</button>
                         <button class="admin-panel-btn" id="close-perms">CANCEL</button>
@@ -1271,13 +1356,20 @@
 
             document.getElementById('close-perms').onclick = () => modal.remove();
             document.getElementById('save-perms').onclick = async () => {
-                const newPerms = {};
+                const newPerms = { users: {} };
                 Object.keys(roles).forEach(rKey => {
                     newPerms[rKey] = {
                         read: document.getElementById(`perm-read-${rKey}`).checked,
                         send: document.getElementById(`perm-send-${rKey}`).checked
                     };
                 });
+                Object.keys(users).forEach(uName => {
+                    const cb = document.getElementById(`user-send-${uName}`);
+                    if (cb) {
+                        newPerms.users[uName] = { send: cb.checked };
+                    }
+                });
+
                 await fetch(`${FIREBASE_URL}/structure/categories/${catKey}/channels/${chKey}/permissions.json?auth=${FIREBASE_TOKEN}`, {
                     method: 'PUT',
                     body: JSON.stringify(newPerms)
@@ -1293,7 +1385,7 @@
 
             let rolesHtml = '';
             Object.keys(roles).forEach(key => {
-                rolesHtml += `<div style="display:flex; justify-content:space-between; margin-bottom:8px;"><b>${roles[key].name}</b> <span style="color:${roles[key].color}">${roles[key].color}</span></div>`;
+                rolesHtml += `<div style="display:flex; justify-content:space-between; margin-bottom:8px;"><b style="color:${roles[key].color}">${roles[key].name}</b> <span>${roles[key].color}</span></div>`;
             });
 
             const modal = document.createElement('div');
@@ -1345,7 +1437,7 @@
             modal.innerHTML = `
                 <div class="modal-card">
                     <h3>MANAGE USER: ${targetUser}</h3>
-                    <div style="font-size: 12px; margin-bottom: 15px; color: #aaa;">IP Address: ${targetIp || 'Unknown'}</div>
+                    <div style="font-size: 12px; margin-bottom: 15px; color: #fff;">IP Address: ${targetIp || 'Unknown'}</div>
                     <div class="input-group">
                         <label>ASSIGN ROLE</label>
                         <select id="assign-role-select">${roleOpts}</select>
