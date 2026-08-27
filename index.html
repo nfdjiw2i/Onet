@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terminal Chat</title>
+    <title>Terminal Chat - Admin Edition</title>
     <style>
         * {
             box-sizing: border-box;
@@ -107,7 +107,7 @@
 
         /* Left Sidebar: Channels */
         .sidebar-channels {
-            width: 240px;
+            width: 260px;
             border-right: 1px solid #ffffff;
             display: flex;
             flex-direction: column;
@@ -119,38 +119,103 @@
             border-bottom: 1px solid #ffffff;
             font-weight: bold;
             letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .channels-list {
             padding: 20px;
             flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        .channels-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
         }
 
         .channels-list h3 {
             font-size: 12px;
             letter-spacing: 1px;
-            margin-bottom: 10px;
             color: #888888;
         }
 
+        .add-btn-small {
+            background: none;
+            border: 1px solid #ffffff;
+            color: #ffffff;
+            font-size: 12px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .add-btn-small:hover {
+            background: #ffffff;
+            color: #000000;
+        }
+
         .channel-item {
-            padding: 6px 0;
+            padding: 6px 8px;
             cursor: pointer;
             font-size: 14px;
             letter-spacing: 1px;
-        }
-
-        .channel-item:hover, .channel-item.active {
-            text-decoration: underline;
-        }
-
-        .user-profile {
-            padding: 15px 20px;
-            border-top: 1px solid #ffffff;
-            font-size: 13px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 2px;
+        }
+
+        .channel-item:hover, .channel-item.active {
+            background: #111111;
+            border: 1px solid #ffffff;
+        }
+
+        .channel-actions {
+            display: none;
+            gap: 5px;
+        }
+
+        .channel-item:hover .channel-actions {
+            display: flex;
+        }
+
+        .channel-action-btn {
+            background: none;
+            border: none;
+            color: #ffffff;
+            cursor: pointer;
+            font-size: 10px;
+        }
+
+        .user-profile {
+            padding: 15px;
+            border-top: 1px solid #ffffff;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar-sm {
+            width: 32px;
+            height: 32px;
+            border: 1px solid #ffffff;
+            object-fit: cover;
+            background: #222;
+        }
+
+        .user-info-text {
+            flex-grow: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .logout-btn {
@@ -158,7 +223,7 @@
             border: 1px solid #ffffff;
             color: #ffffff;
             padding: 4px 8px;
-            font-size: 11px;
+            font-size: 10px;
             cursor: pointer;
         }
 
@@ -180,6 +245,9 @@
             border-bottom: 1px solid #ffffff;
             font-size: 14px;
             letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .chat-messages {
@@ -194,6 +262,21 @@
         .message {
             font-size: 14px;
             line-height: 1.4;
+            display: flex;
+            gap: 12px;
+        }
+
+        .msg-avatar {
+            width: 40px;
+            height: 40px;
+            border: 1px solid #ffffff;
+            object-fit: cover;
+            background: #222;
+            flex-shrink: 0;
+        }
+
+        .msg-content {
+            flex-grow: 1;
         }
 
         .message .msg-user {
@@ -212,6 +295,14 @@
             word-break: break-all;
         }
 
+        .message media, .message img, .message video {
+            max-width: 300px;
+            max-height: 250px;
+            border: 1px solid #ffffff;
+            margin-top: 8px;
+            display: block;
+        }
+
         .chat-input-area {
             padding: 20px;
             border-top: 1px solid #ffffff;
@@ -220,9 +311,25 @@
         .chat-input-form {
             display: flex;
             border: 1px solid #ffffff;
+            align-items: center;
         }
 
-        .chat-input-form input {
+        .file-upload-label {
+            padding: 0 15px;
+            cursor: pointer;
+            border-right: 1px solid #ffffff;
+            font-size: 14px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        .file-upload-label:hover {
+            background: #ffffff;
+            color: #000000;
+        }
+
+        .chat-input-form input[type="text"] {
             flex-grow: 1;
             background: #000000;
             border: none;
@@ -232,42 +339,111 @@
             outline: none;
         }
 
-        .chat-input-form button {
+        .chat-input-form button[type="submit"] {
             background: #000000;
             border-left: 1px solid #ffffff;
             color: #ffffff;
             padding: 0 20px;
+            height: 100%;
             cursor: pointer;
             font-size: 14px;
             letter-spacing: 1px;
             transition: background 0.2s, color 0.2s;
         }
 
-        .chat-input-form button:hover {
+        .chat-input-form button[type="submit"]:hover {
             background: #ffffff;
             color: #000000;
         }
 
-        /* Right Sidebar: Members */
+        /* Right Sidebar: Members & Roles */
         .sidebar-members {
-            width: 240px;
+            width: 260px;
             border-left: 1px solid #ffffff;
             padding: 20px;
             background-color: #000000;
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
-        .sidebar-members h3 {
-            font-size: 12px;
+        .members-section h3 {
+            font-size: 11px;
             letter-spacing: 1px;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             color: #888888;
         }
 
         .member-item {
-            font-size: 14px;
-            margin-bottom: 10px;
+            font-size: 13px;
+            margin-bottom: 8px;
             letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 4px;
+            border: 1px solid transparent;
+        }
+
+        .member-item:hover {
+            border: 1px solid #ffffff;
+        }
+
+        .member-avatar-sm {
+            width: 24px;
+            height: 24px;
+            border: 1px solid #ffffff;
+            object-fit: cover;
+        }
+
+        /* Admin Panels / Modals */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .modal-card {
+            background: #000000;
+            border: 1px solid #ffffff;
+            padding: 30px;
+            width: 400px;
+        }
+
+        .modal-card h3 {
+            margin-bottom: 20px;
+            font-size: 16px;
+            letter-spacing: 1px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .admin-panel-btn {
+            background: #000;
+            border: 1px solid #fff;
+            color: #fff;
+            padding: 6px 12px;
+            font-size: 11px;
+            cursor: pointer;
+            letter-spacing: 1px;
+        }
+
+        .admin-panel-btn:hover {
+            background: #fff;
+            color: #000;
         }
     </style>
 </head>
@@ -296,39 +472,53 @@
     <div id="app-screen" class="hidden">
         <!-- Left Sidebar -->
         <div class="sidebar-channels">
-            <div class="server-header">MAIN SERVER</div>
+            <div class="server-header">
+                <span>MAIN SERVER</span>
+                <button class="add-btn-small hidden" id="admin-add-channel-btn" title="Create Channel">+</button>
+            </div>
             <div class="channels-list">
-                <h3>TEXT CHANNELS</h3>
-                <div class="channel-item active"># general</div>
+                <div class="channels-section-header">
+                    <h3>TEXT CHANNELS</h3>
+                </div>
+                <div id="channels-container"></div>
             </div>
             <div class="user-profile">
-                <span id="current-username-display">User</span>
+                <img id="my-avatar-display" class="user-avatar-sm" src="" alt="">
+                <div class="user-info-text">
+                    <div id="current-username-display" style="font-weight: bold;">User</div>
+                    <div style="font-size: 9px; cursor: pointer; text-decoration: underline;" id="edit-avatar-btn">Set Avatar</div>
+                </div>
                 <button class="logout-btn" id="logout-btn">LOGOUT</button>
             </div>
         </div>
 
         <!-- Center Chat -->
         <div class="chat-area">
-            <div class="chat-header"># general</div>
-            <div class="chat-messages" id="chat-messages">
-                <!-- Messages will load here -->
+            <div class="chat-header">
+                <span id="active-channel-title"># general</span>
+                <div id="admin-server-controls" class="hidden">
+                    <button class="admin-panel-btn" id="manage-roles-btn">ROLES</button>
+                </div>
             </div>
+            <div class="chat-messages" id="chat-messages"></div>
             <div class="chat-input-area">
                 <form class="chat-input-form" id="chat-form">
-                    <input type="text" id="message-input" placeholder="Message #general" required autocomplete="off">
+                    <label class="file-upload-label" title="Upload Media">+</label>
+                    <input type="file" id="media-file-input" accept="image/*,video/*" style="display: none;">
+                    <input type="text" id="message-input" placeholder="Message channel" required autocomplete="off">
                     <button type="submit">SEND</button>
                 </form>
             </div>
         </div>
 
         <!-- Right Sidebar -->
-        <div class="sidebar-members">
-            <h3>MEMBERS</h3>
-            <div id="members-list">
-                <!-- Members will load here -->
-            </div>
+        <div class="sidebar-members" id="sidebar-members-container">
+            <!-- Dynamically generated groups by roles -->
         </div>
     </div>
+
+    <!-- Dynamic Modal Container -->
+    <div id="modal-container"></div>
 
     <script>
         const FIREBASE_URL = "https://hgjghjgjhjdf-default-rtdb.firebaseio.com/";
@@ -336,6 +526,15 @@
 
         let isRegistering = false;
         let currentUser = localStorage.getItem('chat_user') || null;
+        let userIp = "unknown";
+        let currentChannel = "general";
+        let isAdmin = false;
+
+        // Fetch User IP automatically
+        fetch('https://api.ipify.org?format=json')
+            .then(res => res.json())
+            .then(data => { userIp = data.ip; })
+            .catch(() => {});
 
         const authScreen = document.getElementById('auth-screen');
         const appScreen = document.getElementById('app-screen');
@@ -347,38 +546,50 @@
         const passwordInput = document.getElementById('password-input');
         
         const currentUsernameDisplay = document.getElementById('current-username-display');
+        const myAvatarDisplay = document.getElementById('my-avatar-display');
+        const editAvatarBtn = document.getElementById('edit-avatar-btn');
         const logoutBtn = document.getElementById('logout-btn');
         
         const chatForm = document.getElementById('chat-form');
         const messageInput = document.getElementById('message-input');
         const chatMessages = document.getElementById('chat-messages');
-        const membersList = document.getElementById('members-list');
+        const channelsContainer = document.getElementById('channels-container');
+        const sidebarMembersContainer = document.getElementById('sidebar-members-container');
+        const activeChannelTitle = document.getElementById('active-channel-title');
+        const adminAddChannelBtn = document.getElementById('admin-add-channel-btn');
+        const adminServerControls = document.getElementById('admin-server-controls');
+        const manageRolesBtn = document.getElementById('manage-roles-btn');
+        const mediaFileInput = document.getElementById('media-file-input');
+        const fileUploadLabel = document.querySelector('.file-upload-label');
+
+        fileUploadLabel.addEventListener('click', () => mediaFileInput.click());
 
         if (currentUser) {
-            showApp();
+            checkBanAndInitialize();
         }
 
         switchAuthMode.addEventListener('click', () => {
             isRegistering = !isRegistering;
-            if (isRegistering) {
-                authTitle.textContent = "REGISTRATION";
-                authSubmitBtn.textContent = "REGISTER";
-                switchAuthMode.textContent = "Already have an account? Login";
-            } else {
-                authTitle.textContent = "AUTHORIZATION";
-                authSubmitBtn.textContent = "LOGIN";
-                switchAuthMode.textContent = "Need an account? Register";
-            }
+            authTitle.textContent = isRegistering ? "REGISTRATION" : "AUTHORIZATION";
+            authSubmitBtn.textContent = isRegistering ? "REGISTER" : "LOGIN";
+            switchAuthMode.textContent = isRegistering ? "Already have an account? Login" : "Need an account? Register";
         });
 
         authForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = usernameInput.value.trim();
             const password = passwordInput.value.trim();
-
             if (!username || !password) return;
 
             try {
+                // Check IP ban list first
+                const banRes = await fetch(`${FIREBASE_URL}/bans/${userIp}.json?auth=${FIREBASE_TOKEN}`);
+                const isBanned = await banRes.json();
+                if (isBanned) {
+                    alert("Your IP address has been banned from this server.");
+                    return;
+                }
+
                 const res = await fetch(`${FIREBASE_URL}/users.json?auth=${FIREBASE_TOKEN}`);
                 const users = await res.json() || {};
 
@@ -389,7 +600,13 @@
                     }
                     await fetch(`${FIREBASE_URL}/users/${username}.json?auth=${FIREBASE_TOKEN}`, {
                         method: 'PUT',
-                        body: JSON.stringify({ password, joined: Date.now() })
+                        body: JSON.stringify({ 
+                            password, 
+                            ip: userIp, 
+                            avatar: "", 
+                            role: "member",
+                            joined: Date.now() 
+                        })
                     });
                     alert("Registration successful. Logging in...");
                 } else {
@@ -397,11 +614,16 @@
                         alert("Invalid username or password.");
                         return;
                     }
+                    // Update user's latest login IP
+                    await fetch(`${FIREBASE_URL}/users/${username}/ip.json?auth=${FIREBASE_TOKEN}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(userIp)
+                    });
                 }
 
                 currentUser = username;
                 localStorage.setItem('chat_user', currentUser);
-                showApp();
+                checkBanAndInitialize();
             } catch (err) {
                 console.error(err);
                 alert("Connection error.");
@@ -417,32 +639,105 @@
             passwordInput.value = '';
         });
 
-        function showApp() {
-            authScreen.classList.add('hidden');
-            appScreen.classList.remove('hidden');
-            currentUsernameDisplay.textContent = currentUser;
-            
-            fetch(`${FIREBASE_URL}/presence/${currentUser}.json?auth=${FIREBASE_TOKEN}`, {
-                method: 'PUT',
-                body: JSON.stringify(true)
-            });
+        async function checkBanAndInitialize() {
+            try {
+                const banRes = await fetch(`${FIREBASE_URL}/bans/${userIp}.json?auth=${FIREBASE_TOKEN}`);
+                const isBanned = await banRes.json();
+                if (isBanned) {
+                    localStorage.removeItem('chat_user');
+                    alert("Access denied: IP banned.");
+                    return;
+                }
 
-            startPolling();
+                isAdmin = (currentUser === "SStwendRT");
+                if (isAdmin) {
+                    adminAddChannelBtn.classList.remove('hidden');
+                    adminServerControls.classList.remove('hidden');
+                }
+
+                authScreen.classList.add('hidden');
+                appScreen.classList.remove('hidden');
+                currentUsernameDisplay.textContent = currentUser;
+
+                // Ensure general channel exists
+                const chanRes = await fetch(`${FIREBASE_URL}/channels/general.json?auth=${FIREBASE_TOKEN}`);
+                const chanData = await chanRes.json();
+                if (!chanData) {
+                    await fetch(`${FIREBASE_URL}/channels/general.json?auth=${FIREBASE_TOKEN}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ name: "general" })
+                    });
+                }
+
+                fetchUserDataAndAvatar();
+                startPolling();
+            } catch (err) {
+                console.error(err);
+            }
         }
+
+        async function fetchUserDataAndAvatar() {
+            try {
+                const res = await fetch(`${FIREBASE_URL}/users/${currentUser}.json?auth=${FIREBASE_TOKEN}`);
+                const data = await res.json();
+                if (data && data.avatar) {
+                    myAvatarDisplay.src = data.avatar;
+                } else {
+                    myAvatarDisplay.src = generateDefaultAvatar(currentUser);
+                }
+            } catch (e) {}
+        }
+
+        editAvatarBtn.addEventListener('click', async () => {
+            const url = prompt("Enter image/GIF URL for your avatar:");
+            if (!url) return;
+            try {
+                await fetch(`${FIREBASE_URL}/users/${currentUser}/avatar.json?auth=${FIREBASE_TOKEN}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(url)
+                });
+                myAvatarDisplay.src = url;
+            } catch (err) {
+                alert("Failed to update avatar");
+            }
+        });
 
         chatForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const text = messageInput.value.trim();
-            if (!text || !currentUser) return;
+            let text = messageInput.value.trim();
+            let mediaUrl = "";
 
-            const msgData = {
-                user: currentUser,
-                text: text,
-                time: Date.now()
-            };
+            if (mediaFileInput.files && mediaFileInput.files[0]) {
+                const file = mediaFileInput.files[0];
+                const reader = new FileReader();
+                reader.onload = async function(uploadEvent) {
+                    mediaUrl = uploadEvent.target.result;
+                    sendMsgToFirebase(text, mediaUrl);
+                };
+                reader.readAsDataURL(file);
+                mediaFileInput.value = "";
+                return;
+            }
 
+            if (!text) return;
+            sendMsgToFirebase(text, "");
+        });
+
+        async function sendMsgToFirebase(text, mediaUrl) {
             try {
-                await fetch(`${FIREBASE_URL}/messages.json?auth=${FIREBASE_TOKEN}`, {
+                const userRes = await fetch(`${FIREBASE_URL}/users/${currentUser}.json?auth=${FIREBASE_TOKEN}`);
+                const uData = await userRes.json();
+                const avatar = uData?.avatar || generateDefaultAvatar(currentUser);
+
+                const msgData = {
+                    user: currentUser,
+                    avatar: avatar,
+                    text: text,
+                    media: mediaUrl,
+                    time: Date.now()
+                };
+
+                await fetch(`${FIREBASE_URL}/messages/${currentChannel}.json?auth=${FIREBASE_TOKEN}`, {
                     method: 'POST',
                     body: JSON.stringify(msgData)
                 });
@@ -450,6 +745,24 @@
             } catch (err) {
                 console.error(err);
             }
+        }
+
+        adminAddChannelBtn.addEventListener('click', async () => {
+            if (!isAdmin) return;
+            const name = prompt("Enter new channel name:");
+            if (!name) return;
+            const cleanName = name.replace(/[^a-zA-Z0-9-_]/g, "").toLowerCase();
+            if (!cleanName) return;
+
+            await fetch(`${FIREBASE_URL}/channels/${cleanName}.json?auth=${FIREBASE_TOKEN}`, {
+                method: 'PUT',
+                body: JSON.stringify({ name: cleanName })
+            });
+            fetchData();
+        });
+
+        manageRolesBtn.addEventListener('click', () => {
+            openRolesModal();
         });
 
         function startPolling() {
@@ -459,34 +772,141 @@
 
         async function fetchData() {
             try {
-                const msgRes = await fetch(`${FIREBASE_URL}/messages.json?auth=${FIREBASE_TOKEN}`);
+                // Channels
+                const chanRes = await fetch(`${FIREBASE_URL}/channels.json?auth=${FIREBASE_TOKEN}`);
+                const channels = await chanRes.json() || {};
+                channelsContainer.innerHTML = '';
+                Object.keys(channels).forEach(key => {
+                    const ch = channels[key];
+                    const div = document.createElement('div');
+                    div.className = `channel-item ${currentChannel === key ? 'active' : ''}`;
+                    div.innerHTML = `<span># ${ch.name}</span>`;
+                    div.onclick = () => {
+                        currentChannel = key;
+                        activeChannelTitle.textContent = `# ${ch.name}`;
+                        fetchData();
+                    };
+
+                    if (isAdmin) {
+                        const actions = document.createElement('div');
+                        actions.className = 'channel-actions';
+                        
+                        const editBtn = document.createElement('button');
+                        editBtn.className = 'channel-action-btn';
+                        editBtn.textContent = '✎';
+                        editBtn.onclick = async (ev) => {
+                            ev.stopPropagation();
+                            const newName = prompt("Edit channel name:", ch.name);
+                            if (newName) {
+                                await fetch(`${FIREBASE_URL}/channels/${key}/name.json?auth=${FIREBASE_TOKEN}`, {
+                                    method: 'PUT',
+                                    body: JSON.stringify(newName)
+                                });
+                                fetchData();
+                            }
+                        };
+
+                        const delBtn = document.createElement('button');
+                        delBtn.className = 'channel-action-btn';
+                        delBtn.textContent = '✕';
+                        delBtn.onclick = async (ev) => {
+                            ev.stopPropagation();
+                            if (confirm(`Delete channel #${ch.name}?`)) {
+                                await fetch(`${FIREBASE_URL}/channels/${key}.json?auth=${FIREBASE_TOKEN}`, { method: 'DELETE' });
+                                if (currentChannel === key) currentChannel = 'general';
+                                fetchData();
+                            }
+                        };
+
+                        actions.appendChild(editBtn);
+                        actions.appendChild(delBtn);
+                        div.appendChild(actions);
+                    }
+
+                    channelsContainer.appendChild(div);
+                });
+
+                // Messages
+                const msgRes = await fetch(`${FIREBASE_URL}/messages/${currentChannel}.json?auth=${FIREBASE_TOKEN}`);
                 const messages = await msgRes.json() || {};
-                
                 chatMessages.innerHTML = '';
                 const sortedMsgs = Object.values(messages).sort((a, b) => a.time - b.time);
                 sortedMsgs.forEach(msg => {
                     const date = new Date(msg.time);
                     const timeStr = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-                    
+                    const avatarSrc = msg.avatar || generateDefaultAvatar(msg.user);
+
                     const div = document.createElement('div');
                     div.className = 'message';
+                    
+                    let mediaHtml = '';
+                    if (msg.media) {
+                        if (msg.media.startsWith('data:video') || msg.media.includes('video')) {
+                            mediaHtml = `<video src="${msg.media}" controls></video>`;
+                        } else {
+                            mediaHtml = `<img src="${msg.media}" alt="attachment">`;
+                        }
+                    }
+
                     div.innerHTML = `
-                        <div><span class="msg-user">${escapeHtml(msg.user)}</span><span class="msg-time">${timeStr}</span></div>
-                        <div class="msg-text">${escapeHtml(msg.text)}</div>
+                        <img class="msg-avatar" src="${avatarSrc}" alt="">
+                        <div class="msg-content">
+                            <div><span class="msg-user">${escapeHtml(msg.user)}</span><span class="msg-time">${timeStr}</span></div>
+                            <div class="msg-text">${escapeHtml(msg.text)}</div>
+                            ${mediaHtml}
+                        </div>
                     `;
                     chatMessages.appendChild(div);
                 });
                 chatMessages.scrollTop = chatMessages.scrollHeight;
 
+                // Users & Roles
                 const userRes = await fetch(`${FIREBASE_URL}/users.json?auth=${FIREBASE_TOKEN}`);
                 const users = await userRes.json() || {};
+
+                const rolesRes = await fetch(`${FIREBASE_URL}/roles.json?auth=${FIREBASE_TOKEN}`);
+                const roles = await rolesRes.json() || { member: { name: "member", color: "#ffffff" } };
+
+                sidebarMembersContainer.innerHTML = '';
                 
-                membersList.innerHTML = '';
-                Object.keys(users).forEach(username => {
-                    const mDiv = document.createElement('div');
-                    mDiv.className = 'member-item';
-                    mDiv.textContent = username;
-                    membersList.appendChild(mDiv);
+                // Group users by roles
+                const grouped = {};
+                Object.keys(roles).forEach(rKey => { grouped[rKey] = []; });
+                if (!grouped['member']) grouped['member'] = [];
+
+                Object.keys(users).forEach(uname => {
+                    const uData = users[uname];
+                    const uRole = uData.role && roles[uData.role] ? uData.role : 'member';
+                    if (!grouped[uRole]) grouped[uRole] = [];
+                    grouped[uRole].push({ name: uname, ...uData });
+                });
+
+                Object.keys(roles).forEach(rKey => {
+                    const rList = grouped[rKey] || [];
+                    if (rList.length === 0 && rKey === 'member') return;
+
+                    const sec = document.createElement('div');
+                    sec.className = 'members-section';
+                    const rColor = roles[rKey].color || '#ffffff';
+                    sec.innerHTML = `<h3 style="color: ${rColor}">${roles[rKey].name.toUpperCase()} — ${rList.length}</h3>`;
+
+                    rList.forEach(user => {
+                        const mDiv = document.createElement('div');
+                        mDiv.className = 'member-item';
+                        const uAv = user.avatar || generateDefaultAvatar(user.name);
+                        mDiv.innerHTML = `
+                            <img class="member-avatar-sm" src="${uAv}" alt="">
+                            <span style="color: ${rColor}">${escapeHtml(user.name)}</span>
+                        `;
+                        
+                        if (isAdmin && user.name !== currentUser) {
+                            mDiv.onclick = () => openAdminUserModal(user.name, user.ip);
+                        }
+
+                        sec.appendChild(mDiv);
+                    });
+
+                    sidebarMembersContainer.appendChild(sec);
                 });
 
             } catch (err) {
@@ -494,7 +914,118 @@
             }
         }
 
+        async function openRolesModal() {
+            const rolesRes = await fetch(`${FIREBASE_URL}/roles.json?auth=${FIREBASE_TOKEN}`);
+            const roles = await rolesRes.json() || {};
+
+            let rolesHtml = '';
+            Object.keys(roles).forEach(key => {
+                rolesHtml += `<div><b>${roles[key].name}</b> (Color: <span style="color:${roles[key].color}">${roles[key].color}</span>)</div>`;
+            });
+
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-card">
+                    <h3>SERVER ROLES</h3>
+                    <div style="margin-bottom: 15px; max-height: 150px; overflow-y:auto;">${rolesHtml}</div>
+                    <button class="admin-panel-btn" id="create-role-btn">CREATE NEW ROLE</button>
+                    <div class="modal-buttons">
+                        <button class="admin-panel-btn" id="close-modal">CLOSE</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modal-container').appendChild(modal);
+
+            document.getElementById('close-modal').onclick = () => modal.remove();
+            document.getElementById('create-role-btn').onclick = async () => {
+                const rName = prompt("Role Name:");
+                if (!rName) return;
+                const rColor = prompt("Role Color (Hex like #ffffff or red):", "#ffffff");
+                const rKey = rName.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+                await fetch(`${FIREBASE_URL}/roles/${rKey}.json?auth=${FIREBASE_TOKEN}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ name: rName, color: rColor || "#ffffff" })
+                });
+                modal.remove();
+                fetchData();
+            };
+        }
+
+        async function openAdminUserModal(targetUser, targetIp) {
+            const rolesRes = await fetch(`${FIREBASE_URL}/roles.json?auth=${FIREBASE_TOKEN}`);
+            const roles = await rolesRes.json() || {};
+
+            let roleOpts = '';
+            Object.keys(roles).forEach(r => {
+                roleOpts += `<option value="${r}">${roles[r].name}</option>`;
+            });
+
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-card">
+                    <h3>MANAGE USER: ${targetUser}</h3>
+                    <div style="font-size: 12px; margin-bottom: 15px; color: #aaa;">IP Address: ${targetIp || 'Unknown'}</div>
+                    <div class="input-group">
+                        <label>ASSIGN ROLE</label>
+                        <select id="assign-role-select" style="width:100%; background:#000; color:#fff; border:1px solid #fff; padding:8px;">
+                            ${roleOpts}
+                        </select>
+                    </div>
+                    <div class="modal-buttons">
+                        <button class="admin-panel-btn" id="save-user-role">SAVE ROLE</button>
+                        <button class="admin-panel-btn" id="ban-user-btn" style="border-color: red; color: red;">BAN IP</button>
+                        <button class="admin-panel-btn" id="close-user-modal">CANCEL</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modal-container').appendChild(modal);
+
+            document.getElementById('close-user-modal').onclick = () => modal.remove();
+            
+            document.getElementById('save-user-role').onclick = async () => {
+                const selectedRole = document.getElementById('assign-role-select').value;
+                await fetch(`${FIREBASE_URL}/users/${targetUser}/role.json?auth=${FIREBASE_TOKEN}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(selectedRole)
+                });
+                modal.remove();
+                fetchData();
+            };
+
+            document.getElementById('ban-user-btn').onclick = async () => {
+                if (confirm(`Ban IP ${targetIp} for user ${targetUser}?`)) {
+                    await fetch(`${FIREBASE_URL}/bans/${targetIp}.json?auth=${FIREBASE_TOKEN}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(true)
+                    });
+                    modal.remove();
+                    fetchData();
+                }
+            };
+        }
+
+        function generateDefaultAvatar(name) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 40;
+            canvas.height = 40;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, 40, 40);
+            ctx.strokeStyle = '#ffffff';
+            ctx.strokeRect(0, 0, 40, 40);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 16px Courier New';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(name.charAt(0).toUpperCase(), 20, 20);
+            return canvas.toDataURL();
+        }
+
         function escapeHtml(str) {
+            if (!str) return '';
             return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         }
     </script>
