@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Terminal Chat - Ultimate Edition v6</title>
+<title>Terminal Chat - Ultimate Edition v7</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Courier New',Courier,monospace;user-select:none;color:#fff}
 body{background:#000;color:#fff;height:100vh;overflow:hidden}
@@ -264,7 +264,6 @@ modal.remove();fetchUserDataAndAvatar();fetchData();
 }catch(e){alert("Error opening profile.")}
 });
 
-// МОДАЛЬНОЕ ОКНО ПРОФИЛЯ УЧАСТНИКА (С ВОЗМОЖНОСТЬЮ БАНА И СМЕНЫ РОЛИ)
 async function openMemberProfileModal(username, userData) {
 try {
 const modal = document.createElement('div');
@@ -330,7 +329,6 @@ fetchData();
 } catch(e) { alert("Error opening member profile."); }
 }
 
-// СОЗДАНИЕ КАНАЛОВ И КАТЕГОРИЙ
 function handleCreateChannelPrompt(catKey) {
 const targetCat = catKey || currentChannelCatKey;
 const name = prompt("Enter new channel name:");
@@ -360,7 +358,6 @@ fetch(`${FIREBASE_URL}/server/name.json?auth=${FIREBASE_TOKEN}`, {method:'PUT', 
 .then(() => { serverTitleDisplay.textContent = name.trim(); }).catch(() => alert("Failed to update server name."));
 }
 
-// СУПЕР-БЫСТРАЯ ОТПРАВКА СООБЩЕНИЙ С ОПТИМИСТИЧНЫМ РЕНДЕРИНГОМ (Х 10 СКОРОСТЬ)
 chatForm.addEventListener('submit', async e => {
 e.preventDefault();
 let text = messageInput.value.trim();
@@ -384,23 +381,19 @@ executeOptimisticSend(text, "");
 });
 
 function executeOptimisticSend(text, mediaUrl) {
-// 1. Проверяем кулдаун локально перед мгновенной отправкой
-if(!isAdmin && lastMessageTime > 0) {
-// Получаем текущий кулдаун канала (для простоты берем из памяти или дефолта, либо пропускаем если нет)
-}
-
 const time = Date.now();
 const avatar = cachedAvatar || generateDefaultAvatar(currentUser);
+// Генерируем временный уникальный ID для быстрого вывода (будет заменен реальным ключом от Firebase при следующем поллинге)
+const tempId = 'temp_' + time + '_' + Math.random().toString(36.substring(2, 7));
 
-// 2. Оптимистично рисуем сообщение СРАЗУ на экране (ускорение в 10 раз, без ожидания сервера!)
 const date = new Date(time);
 const timeStr = `${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
 const div = document.createElement('div');
 div.className = 'message';
+div.dataset.msgid = tempId;
 let mediaHtml = '';
 if(mediaUrl) mediaHtml = (mediaUrl.startsWith('data:video') || mediaUrl.includes('video')) ? `<video src="${mediaUrl}" controls></video>` : `<img src="${mediaUrl}" alt="media">`;
 div.innerHTML = `<img class="msg-avatar" src="${avatar}" alt=""><div class="msg-content"><div class="msg-header-row"><span class="msg-user">${escapeHtml(currentUser)}</span><span class="msg-time">${timeStr}</span></div><div class="msg-text">${escapeHtml(text)}</div>${mediaHtml}</div>`;
-
 
 const emptyState = chatMessages.querySelector('.empty-state');
 if(emptyState) emptyState.remove();
@@ -409,12 +402,11 @@ chatMessages.scrollTop = chatMessages.scrollHeight;
 
 lastMessageTime = time;
 
-// 3. Отправляем в Firebase в фоновом режиме (асинхронно)
 fetch(`${FIREBASE_URL}/messages/${currentChannel}.json?auth=${FIREBASE_TOKEN}`, {
 method:'POST',
 body:JSON.stringify({user:currentUser, avatar, text, media:mediaUrl, time})
 }).then(() => {
-lastMessagesHash = ""; // сбрасываем хэш, чтобы при следующем тике polling не дергало лишний раз
+lastMessagesHash = ""; 
 }).catch(err => console.error("Background send failed:", err));
 }
 
@@ -549,14 +541,15 @@ else{
 chatInputContainer.style.display='block';
 const msgRes=await fetch(`${FIREBASE_URL}/messages/${currentChannel}.json?auth=${FIREBASE_TOKEN}`);
 const messages=await msgRes.json()||{};
-const msgEntries=Object.entries(messages).sort((a,b)=>a[1].time-b[1].time);
-const newHash=JSON.stringify(msgEntries.map(e=>e[0]+e[1].time));
+// ИСПРАВЛЕНИЕ: Сортируем строго по уникальному ID ключа Firebase, гарантируя правильный хронологический порядок у всех!
+const msgEntries=Object.entries(messages).sort((a,b)=>a[0].localeCompare(b[0]));
+const newHash=JSON.stringify(msgEntries.map(e=>e[0]));
 if(newHash!==lastMessagesHash){
 lastMessagesHash=newHash;chatMessages.innerHTML='';
 if(msgEntries.length===0)chatMessages.innerHTML='<div class="empty-state">No messages yet. Start the conversation!</div>';
 else{
 msgEntries.forEach(([msgId,msg])=>{
-const date=new Date(msg.time);const timeStr=`${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+const date=new Date(msg.time||Date.now());const timeStr=`${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
 const div=document.createElement('div');div.className='message';div.dataset.msgid=msgId;
 let mediaHtml='';
 if(msg.media)mediaHtml=(msg.media.startsWith('data:video')||msg.media.includes('video'))?`<video src="${msg.media}" controls></video>`:`<img src="${msg.media}" alt="media">`;
