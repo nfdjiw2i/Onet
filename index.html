@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Terminal Chat - Ultimate Edition v9</title>
+<title>Terminal Chat - Ultimate Edition v9.1</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Courier New',Courier,monospace;user-select:none;color:#fff}
 body{background:#000;color:#fff;height:100vh;overflow:hidden}
@@ -542,16 +542,23 @@ else{
 chatInputContainer.style.display='block';
 const msgRes=await fetch(`${FIREBASE_URL}/messages/${currentChannel}.json?auth=${FIREBASE_TOKEN}`);
 const messages=await msgRes.json()||{};
-// Сортировка сообщений строго по времени (time), а не по ключам Firebase
 const msgEntries=Object.entries(messages).sort((a,b)=>(a[1].time||0)-(b[1].time||0));
+
 const newHash=JSON.stringify(msgEntries.map(e=>e[0]));
 if(newHash!==lastMessagesHash){
-lastMessagesHash=newHash;chatMessages.innerHTML='';
-if(msgEntries.length===0)chatMessages.innerHTML='<div class="empty-state">No messages yet. Start the conversation!</div>';
-else{
+lastMessagesHash=newHash;
+const isScrolledToBottom=chatMessages.scrollHeight-chatMessages.scrollTop<=chatMessages.clientHeight+50;
+
+chatMessages.innerHTML='';
+if(msgEntries.length===0){
+chatMessages.innerHTML='<div class="empty-state">No messages yet. Start the conversation!</div>';
+}else{
 msgEntries.forEach(([msgId,msg])=>{
-const date=new Date(msg.time||Date.now());const timeStr=`${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
-const div=document.createElement('div');div.className='message';div.dataset.msgid=msgId;
+const date=new Date(msg.time||Date.now());
+const timeStr=`${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+const div=document.createElement('div');
+div.className='message';
+div.dataset.msgid=msgId;
 let mediaHtml='';
 if(msg.media)mediaHtml=(msg.media.startsWith('data:video')||msg.media.includes('video'))?`<video src="${msg.media}" controls></video>`:`<img src="${msg.media}" alt="media">`;
 const canDelete=isAdmin||msg.user===currentUser;
@@ -559,7 +566,9 @@ div.innerHTML=`<img class="msg-avatar" src="${msg.avatar||generateDefaultAvatar(
 if(canDelete)div.querySelector('[data-del]').onclick=async ev=>{ev.stopPropagation();if(!confirm("Delete this message?"))return;await fetch(`${FIREBASE_URL}/messages/${currentChannel}/${msgId}.json?auth=${FIREBASE_TOKEN}`,{method:'DELETE'});lastMessagesHash="";fetchData()};
 chatMessages.appendChild(div);
 });
+if(isScrolledToBottom){
 chatMessages.scrollTop=chatMessages.scrollHeight;
+}
 }
 }
 }
