@@ -23,7 +23,7 @@ body{background:#0a0a0a;color:#e0e0e0;height:100vh;overflow:hidden}
 .switch-auth:hover{color:#aaa}
 #app-screen{display:flex;height:100vh;width:100vw}
 .sidebar-channels{width:250px;border-right:1px solid #1f1f1f;display:flex;flex-direction:column;background:#0d0d0d;flex-shrink:0}
-.server-header{padding:14px 16px;border-bottom:1px solid #1f1f1f;font-weight:600;letter-spacing:1px;display:flex;justify-content:space-between;align-items:center;cursor:default;font-size:14px;color:#fff;border-radius:0}
+.server-header{padding:14px 16px;border-bottom:1px solid #1f1f1f;font-weight:600;letter-spacing:1px;display:flex;justify-content:space-between;align-items:center;cursor:default;font-size:14px;color:#fff}
 .channels-list{padding:10px 8px;flex-grow:1;overflow-y:auto}
 .category-group{margin-bottom:12px}
 .category-header{font-size:10px;letter-spacing:1.5px;color:#555;padding:6px 10px;display:flex;justify-content:space-between;align-items:center;text-transform:uppercase;cursor:default;font-weight:600}
@@ -34,7 +34,7 @@ body{background:#0a0a0a;color:#e0e0e0;height:100vh;overflow:hidden}
 .channel-item .symbol{margin-right:8px;opacity:.6;font-size:12px;font-weight:700}
 .user-profile{padding:12px 14px;border-top:1px solid #1f1f1f;font-size:12px;display:flex;align-items:center;gap:10px;cursor:pointer;background:#0a0a0a}
 .user-profile:hover{background:#121212}
-.user-avatar-sm{width:34px;height:34px;border-radius:10px;border:1px solid #333;object-fit:cover;background:#1a1a1a;flex-shrink:0}
+.user-avatar-sm{width:34px;height:34px;border-radius:50%;border:1px solid #333;object-fit:cover;background:#1a1a1a;flex-shrink:0}
 .user-info-text{flex-grow:1;overflow:hidden;display:flex;flex-direction:column;gap:1px}
 .user-info-text .name{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#eee}
 .user-info-text .status{font-size:10px;color:#666;letter-spacing:.5px}
@@ -48,7 +48,7 @@ body{background:#0a0a0a;color:#e0e0e0;height:100vh;overflow:hidden}
 .chat-messages{flex-grow:1;padding:16px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
 .message{font-size:14px;line-height:1.45;display:flex;gap:14px;align-items:flex-start;position:relative;padding:8px 10px;border-radius:10px;transition:background .1s}
 .message:hover{background:#111}
-.msg-avatar{width:40px;height:40px;border-radius:10px;border:1px solid #2a2a2a;object-fit:cover;background:#1a1a1a;flex-shrink:0;cursor:pointer}
+.msg-avatar{width:40px;height:40px;border-radius:50%;border:1px solid #2a2a2a;object-fit:cover;background:#1a1a1a;flex-shrink:0;cursor:pointer}
 .msg-content{flex-grow:1;display:flex;flex-direction:column;min-width:0}
 .msg-header-row{display:flex;align-items:baseline;gap:8px;margin-bottom:2px}
 .message .msg-user{font-weight:600;font-size:13px;cursor:pointer;color:#eee}
@@ -75,7 +75,7 @@ body{background:#0a0a0a;color:#e0e0e0;height:100vh;overflow:hidden}
 .members-section h3{font-size:10px;letter-spacing:1.5px;margin-bottom:6px;color:#555;text-transform:uppercase;font-weight:600}
 .member-item{font-size:13px;margin-bottom:2px;display:flex;align-items:center;gap:10px;cursor:pointer;padding:5px 8px;border-radius:8px;transition:background .12s;border:1px solid transparent}
 .member-item:hover{background:#161616;border-color:#2a2a2a}
-.member-avatar-sm{width:28px;height:28px;border-radius:8px;border:1px solid #2a2a2a;object-fit:cover;background:#1a1a1a}
+.member-avatar-sm{width:28px;height:28px;border-radius:50%;border:1px solid #2a2a2a;object-fit:cover;background:#1a1a1a}
 .status-dot{width:9px;height:9px;border-radius:50%;border:2px solid #0d0d0d;position:absolute;bottom:-1px;right:-1px}
 .status-online{background:#3ba55d}
 .status-idle{background:#faa61a}
@@ -119,6 +119,8 @@ body{background:#0a0a0a;color:#e0e0e0;height:100vh;overflow:hidden}
 .perm-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px}
 .perm-grid label{display:flex;align-items:center;gap:6px;cursor:pointer;color:#aaa}
 .perm-grid input[type=checkbox]{accent-color:#fff}
+.load-more{text-align:center;padding:12px;color:#666;font-size:12px;cursor:pointer;letter-spacing:1px}
+.load-more:hover{color:#aaa}
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:3px}
@@ -187,8 +189,10 @@ body{background:#0a0a0a;color:#e0e0e0;height:100vh;overflow:hidden}
 const FIREBASE_URL="https://hgjghjgjhjdf-default-rtdb.firebaseio.com/";
 const FIREBASE_TOKEN="87skG4p2wFrEKahKAcCKdig9ouJuD1V1szanWP87";
 const OWNER="SStwendRT";
+const MSG_PAGE_SIZE=20;
 let isRegistering=false,currentUser=localStorage.getItem('chat_user')||null,userIp="unknown",currentChannel="general",currentChannelCatKey="general_cat",currentChannelType="text",isAdmin=false,contextTarget=null,lastMessagesHash="",isPolling=false;
 let cachedAvatar="",cachedBio="",lastMessageTime=0,activeForumPostId=null,userStatus="online",replyToMsg=null,editingMsgId=null,channelCooldown=0,cooldownTimer=null,avatarCache={};
+let allMessagesCache={},displayedCount=MSG_PAGE_SIZE,isLoadingMore=false;
 const userIpPromise=fetch('https://api.ipify.org?format=json').then(r=>r.json()).then(d=>{userIp=d.ip||"unknown";return userIp}).catch(()=>{userIp="unknown";return"unknown"});
 const authScreen=document.getElementById('auth-screen'),appScreen=document.getElementById('app-screen'),authTitle=document.getElementById('auth-title'),authSubmitBtn=document.getElementById('auth-submit-btn'),switchAuthMode=document.getElementById('switch-auth-mode'),authForm=document.getElementById('auth-form'),usernameInput=document.getElementById('username-input'),passwordInput=document.getElementById('password-input'),currentUsernameDisplay=document.getElementById('current-username-display'),currentUserDesc=document.getElementById('current-user-desc'),myAvatarDisplay=document.getElementById('my-avatar-display'),userProfileBar=document.getElementById('user-profile-bar'),logoutBtn=document.getElementById('logout-btn'),serverGearBtn=document.getElementById('server-gear-btn'),channelGearBtn=document.getElementById('channel-gear-btn'),serverTitleDisplay=document.getElementById('server-title-display'),chatForm=document.getElementById('chat-form'),messageInput=document.getElementById('message-input'),chatMessages=document.getElementById('chat-messages'),channelsContainer=document.getElementById('channels-container'),sidebarChannelsPanel=document.getElementById('sidebar-channels-panel'),sidebarMembersContainer=document.getElementById('sidebar-members-container'),activeChannelTitle=document.getElementById('active-channel-title'),mediaFileInput=document.getElementById('media-file-input'),fileUploadLabel=document.querySelector('.file-upload-label'),contextMenu=document.getElementById('context-menu'),chatInputContainer=document.getElementById('chat-input-container'),mainDisplayArea=document.getElementById('main-display-area'),channelTopic=document.getElementById('channel-topic'),sendBtn=document.getElementById('send-btn'),cooldownBar=document.getElementById('cooldown-bar'),cooldownFill=document.getElementById('cooldown-fill'),cooldownText=document.getElementById('cooldown-text');
 
@@ -293,7 +297,7 @@ fetchUserDataAndAvatar();startPolling();
 function getStableAvatar(name,url){
 const key=name+(url||'');
 if(avatarCache[key])return avatarCache[key];
-const src=url||generateDefaultAvatar(name);
+const src=url&&url.length>5?url:generateDefaultAvatar(name);
 avatarCache[key]=src;
 return src;
 }
@@ -306,7 +310,7 @@ cachedAvatar=data?.avatar||"";
 cachedBio=data?.bio||"No description";
 userStatus=data?.status||"online";
 const src=getStableAvatar(currentUser,cachedAvatar);
-if(myAvatarDisplay.src!==src)myAvatarDisplay.src=src;
+if(myAvatarDisplay.getAttribute('src')!==src)myAvatarDisplay.src=src;
 currentUsernameDisplay.textContent=currentUser;
 currentUserDesc.textContent=(cachedBio||userStatus).toUpperCase();
 document.getElementById('my-status-dot').className=`status-dot status-${userStatus}`;
@@ -319,13 +323,22 @@ const userRes=await fetch(`${FIREBASE_URL}/users/${currentUser}.json?auth=${FIRE
 const userData=await userRes.json()||{};
 let currentAvatar=userData.avatar||"",currentName=currentUser,currentBio=userData.bio||"",currentStatus=userData.status||"online";
 const modal=document.createElement('div');modal.className='modal-overlay';
-modal.innerHTML=`<div class="modal-card" style="width:440px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px"><h3>MY PROFILE</h3><button id="close-profile-modal" style="background:none;border:none;color:#666;cursor:pointer;font-size:16px">X</button></div><div style="display:flex;gap:18px;align-items:flex-start;margin-bottom:16px"><div style="text-align:center"><img id="profile-modal-avatar" src="${getStableAvatar(currentName,currentAvatar)}" style="width:72px;height:72px;border-radius:12px;border:1px solid #333;object-fit:cover;cursor:pointer"><div style="font-size:10px;color:#555;margin-top:6px">CHANGE AVATAR</div></div><div style="flex-grow:1"><div class="input-group"><label>USERNAME</label><input type="text" id="profile-modal-name" value="${escapeHtml(currentName)}" maxlength="24"></div><div class="input-group"><label>STATUS</label><select id="profile-modal-status"><option value="online" ${currentStatus==='online'?'selected':''}>Online</option><option value="idle" ${currentStatus==='idle'?'selected':''}>Idle</option><option value="dnd" ${currentStatus==='dnd'?'selected':''}>Do Not Disturb</option><option value="offline" ${currentStatus==='offline'?'selected':''}>Invisible</option></select></div></div></div><div class="input-group"><label>PROFILE BIO</label><textarea id="profile-modal-bio" rows="3" maxlength="200">${escapeHtml(currentBio)}</textarea></div><div class="modal-buttons" id="profile-save-container" style="display:none"><button class="admin-panel-btn" id="save-profile-btn">SAVE CHANGES</button></div></div>`;
+modal.innerHTML=`<div class="modal-card" style="width:440px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px"><h3>MY PROFILE</h3><button id="close-profile-modal" style="background:none;border:none;color:#666;cursor:pointer;font-size:16px">X</button></div><div style="display:flex;gap:18px;align-items:flex-start;margin-bottom:16px"><div style="text-align:center"><img id="profile-modal-avatar" src="${getStableAvatar(currentName,currentAvatar)}" style="width:80px;height:80px;border-radius:50%;border:1px solid #333;object-fit:cover;cursor:pointer"><div style="font-size:10px;color:#555;margin-top:6px">CLICK TO CHANGE</div></div><div style="flex-grow:1"><div class="input-group"><label>USERNAME</label><input type="text" id="profile-modal-name" value="${escapeHtml(currentName)}" maxlength="24"></div><div class="input-group"><label>STATUS</label><select id="profile-modal-status"><option value="online" ${currentStatus==='online'?'selected':''}>Online</option><option value="idle" ${currentStatus==='idle'?'selected':''}>Idle</option><option value="dnd" ${currentStatus==='dnd'?'selected':''}>Do Not Disturb</option><option value="offline" ${currentStatus==='offline'?'selected':''}>Invisible</option></select></div></div></div><div class="input-group"><label>AVATAR URL (optional)</label><input type="text" id="profile-modal-url" value="${escapeHtml(currentAvatar&&!currentAvatar.startsWith('data:')?currentAvatar:'')}" placeholder="https://..."></div><div class="input-group"><label>OR UPLOAD FILE</label><input type="file" id="profile-modal-file" accept="image/*"></div><div class="input-group"><label>PROFILE BIO</label><textarea id="profile-modal-bio" rows="3" maxlength="200">${escapeHtml(currentBio)}</textarea></div><div class="modal-buttons" id="profile-save-container" style="display:none"><button class="admin-panel-btn" id="save-profile-btn">SAVE CHANGES</button></div></div>`;
 document.getElementById('modal-container').appendChild(modal);
-const avatarImg=modal.querySelector('#profile-modal-avatar'),nameInput=modal.querySelector('#profile-modal-name'),bioInput=modal.querySelector('#profile-modal-bio'),statusSelect=modal.querySelector('#profile-modal-status'),saveContainer=modal.querySelector('#profile-save-container');
+const avatarImg=modal.querySelector('#profile-modal-avatar'),nameInput=modal.querySelector('#profile-modal-name'),bioInput=modal.querySelector('#profile-modal-bio'),statusSelect=modal.querySelector('#profile-modal-status'),urlInput=modal.querySelector('#profile-modal-url'),fileInput=modal.querySelector('#profile-modal-file'),saveContainer=modal.querySelector('#profile-save-container');
 let newAvatarVal=currentAvatar;
 function checkForChanges(){saveContainer.style.display=(nameInput.value.trim()!==currentName||bioInput.value!==currentBio||newAvatarVal!==currentAvatar||statusSelect.value!==currentStatus)?'flex':'none'}
 nameInput.addEventListener('input',checkForChanges);bioInput.addEventListener('input',checkForChanges);statusSelect.addEventListener('change',checkForChanges);
-avatarImg.onclick=()=>{const url=prompt("Enter new avatar URL (leave blank to reset):",newAvatarVal);if(url!==null){newAvatarVal=url.trim();avatarImg.src=getStableAvatar(nameInput.value||currentUser,newAvatarVal);checkForChanges()}};
+urlInput.addEventListener('input',()=>{if(urlInput.value.trim()){newAvatarVal=urlInput.value.trim();avatarImg.src=newAvatarVal;checkForChanges()}});
+fileInput.addEventListener('change',()=>{
+const f=fileInput.files[0];
+if(!f)return;
+if(f.size>2*1024*1024){alert("Image max 2 MB");return}
+const reader=new FileReader();
+reader.onload=ev=>{newAvatarVal=ev.target.result;avatarImg.src=newAvatarVal;urlInput.value='';checkForChanges()};
+reader.readAsDataURL(f);
+});
+avatarImg.onclick=()=>fileInput.click();
 modal.querySelector('#close-profile-modal').onclick=()=>modal.remove();
 modal.querySelector('#save-profile-btn').onclick=async()=>{
 const targetNewName=nameInput.value.trim(),targetNewBio=bioInput.value,targetStatus=statusSelect.value;
@@ -356,7 +369,7 @@ const roles=await rolesRes.json()||{};
 let roleOptions='';
 Object.keys(roles).forEach(rKey=>{roleOptions+=`<option value="${rKey}" ${userData.role===rKey?'selected':''}>${roles[rKey].name}</option>`;});
 const statusClass=userData.status||'offline';
-modal.innerHTML=`<div class="modal-card" style="width:400px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px"><h3>USER PROFILE</h3><button id="close-member-modal" style="background:none;border:none;color:#666;cursor:pointer;font-size:16px">X</button></div><div style="display:flex;gap:14px;align-items:center;margin-bottom:14px"><div style="position:relative"><img src="${getStableAvatar(username,userData.avatar)}" style="width:58px;height:58px;border-radius:12px;border:1px solid #333;object-fit:cover"><div class="status-dot status-${statusClass}" style="width:12px;height:12px;bottom:0;right:0"></div></div><div><div style="font-weight:600;font-size:15px;color:#eee">${escapeHtml(username)}</div><div style="font-size:11px;color:#666;margin-top:3px">Joined: ${new Date(userData.joined||Date.now()).toLocaleDateString()}</div><div style="font-size:11px;color:#666;margin-top:2px">Status: ${statusClass}</div></div></div><div class="input-group"><label>BIO</label><div style="padding:10px;border:1px solid #2a2a2a;font-size:13px;background:#0d0d0d;min-height:36px;border-radius:8px">${escapeHtml(userData.bio||'No description')}</div></div>${isAdmin&&username!==currentUser?`<div class="input-group"><label>CHANGE ROLE</label><select id="member-role-select">${roleOptions}</select></div><div class="modal-buttons" style="flex-direction:column;gap:8px"><button class="admin-panel-btn" id="save-member-role-btn">UPDATE ROLE</button><button class="admin-panel-btn" id="dm-member-btn">SEND DIRECT MESSAGE</button><button class="admin-panel-btn danger" id="ban-member-btn">BAN USER (IP)</button></div>`:`<div class="modal-buttons"><button class="admin-panel-btn" id="dm-member-btn">SEND DIRECT MESSAGE</button></div>`}</div>`;
+modal.innerHTML=`<div class="modal-card" style="width:400px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px"><h3>USER PROFILE</h3><button id="close-member-modal" style="background:none;border:none;color:#666;cursor:pointer;font-size:16px">X</button></div><div style="display:flex;gap:14px;align-items:center;margin-bottom:14px"><div style="position:relative"><img src="${getStableAvatar(username,userData.avatar)}" style="width:64px;height:64px;border-radius:50%;border:1px solid #333;object-fit:cover"><div class="status-dot status-${statusClass}" style="width:12px;height:12px;bottom:0;right:0"></div></div><div><div style="font-weight:600;font-size:15px;color:#eee">${escapeHtml(username)}</div><div style="font-size:11px;color:#666;margin-top:3px">Joined: ${new Date(userData.joined||Date.now()).toLocaleDateString()}</div><div style="font-size:11px;color:#666;margin-top:2px">Status: ${statusClass}</div></div></div><div class="input-group"><label>BIO</label><div style="padding:10px;border:1px solid #2a2a2a;font-size:13px;background:#0d0d0d;min-height:36px;border-radius:8px">${escapeHtml(userData.bio||'No description')}</div></div>${isAdmin&&username!==currentUser?`<div class="input-group"><label>CHANGE ROLE</label><select id="member-role-select">${roleOptions}</select></div><div class="modal-buttons" style="flex-direction:column;gap:8px"><button class="admin-panel-btn" id="save-member-role-btn">UPDATE ROLE</button><button class="admin-panel-btn" id="dm-member-btn">SEND DIRECT MESSAGE</button><button class="admin-panel-btn danger" id="ban-member-btn">BAN USER (IP)</button></div>`:`<div class="modal-buttons"><button class="admin-panel-btn" id="dm-member-btn">SEND DIRECT MESSAGE</button></div>`}</div>`;
 document.getElementById('modal-container').appendChild(modal);
 modal.querySelector('#close-member-modal').onclick=()=>modal.remove();
 const dmBtn=modal.querySelector('#dm-member-btn');
@@ -470,8 +483,7 @@ administrator:row.querySelector('[data-perm="administrator"]').checked
 };
 const nameEl=row.querySelector('.role-name');
 const name=nameEl.childNodes[0].textContent.trim();
-const color=getComputedStyle(nameEl).color;
-await fetch(`${FIREBASE_URL}/roles/${key}.json?auth=${FIREBASE_TOKEN}`,{method:'PUT',body:JSON.stringify({name,color:rgbToHex(color)||'#aaaaaa',hoist,permissions})});
+await fetch(`${FIREBASE_URL}/roles/${key}.json?auth=${FIREBASE_TOKEN}`,{method:'PUT',body:JSON.stringify({name,color:roles[key]?.color||'#aaaaaa',hoist,permissions})});
 }
 modal.remove();fetchData();
 };
@@ -484,47 +496,52 @@ modal.remove();openRolesModal();
 });
 }
 
-function rgbToHex(rgb){
-const m=rgb.match(/\d+/g);
-if(!m||m.length<3)return null;
-return'#'+m.slice(0,3).map(x=>parseInt(x).toString(16).padStart(2,'0')).join('');
-}
-
 function startCooldown(seconds){
 if(seconds<=0)return;
 clearInterval(cooldownTimer);
 let remaining=seconds;
-sendBtn.disabled=true;
-messageInput.disabled=true;
-cooldownBar.style.display='block';
-cooldownText.style.display='block';
-cooldownText.textContent=`Cooldown: ${remaining}s`;
-cooldownFill.style.width='100%';
+const btn=document.getElementById('send-btn');
+const inp=document.getElementById('message-input');
+if(btn)btn.disabled=true;
+if(inp)inp.disabled=true;
+const bar=document.getElementById('cooldown-bar');
+const fill=document.getElementById('cooldown-fill');
+const txt=document.getElementById('cooldown-text');
+if(bar)bar.style.display='block';
+if(txt){txt.style.display='block';txt.textContent=`Cooldown: ${remaining}s`;}
+if(fill)fill.style.width='100%';
 const start=Date.now();
 cooldownTimer=setInterval(()=>{
 const elapsed=(Date.now()-start)/1000;
 remaining=Math.max(0,seconds-elapsed);
 const pct=(remaining/seconds)*100;
-cooldownFill.style.width=pct+'%';
-cooldownText.textContent=`Cooldown: ${Math.ceil(remaining)}s`;
+if(fill)fill.style.width=pct+'%';
+if(txt)txt.textContent=`Cooldown: ${Math.ceil(remaining)}s`;
 if(remaining<=0){
 clearInterval(cooldownTimer);
-sendBtn.disabled=false;
-messageInput.disabled=false;
-cooldownBar.style.display='none';
-cooldownText.style.display='none';cooldownText.textContent='';
+if(btn)btn.disabled=false;
+if(inp)inp.disabled=false;
+if(bar)bar.style.display='none';
+if(txt){txt.style.display='none';txt.textContent='';}
 }
 },50);
 }
 
-chatForm.addEventListener('submit',async e=>{
+function bindChatForm(){
+const form=document.getElementById('chat-form');
+if(!form)return;
+form.onsubmit=async e=>{
 e.preventDefault();
-if(sendBtn.disabled)return;
-let text=messageInput.value.trim();
-if(!text&&!mediaFileInput.files[0])return;
+e.stopPropagation();
+const btn=document.getElementById('send-btn');
+if(btn&&btn.disabled)return;
+const inp=document.getElementById('message-input');
+const fileInp=document.getElementById('media-file-input');
+let text=(inp?inp.value:'').trim();
+if(!text&&!(fileInp&&fileInp.files[0]))return;
 if(editingMsgId){
 await fetch(`${FIREBASE_URL}/messages/${currentChannel}/${editingMsgId}/text.json?auth=${FIREBASE_TOKEN}`,{method:'PUT',body:JSON.stringify(text)});
-editingMsgId=null;messageInput.value='';messageInput.placeholder=`Message #${currentChannel}`;lastMessagesHash="";fetchData();return;
+editingMsgId=null;if(inp)inp.value='';if(inp)inp.placeholder=`Message #${currentChannel}`;lastMessagesHash="";fetchData();return;
 }
 const now=Date.now();
 if(channelCooldown>0&&(now-lastMessageTime)<channelCooldown*1000){
@@ -532,24 +549,28 @@ const left=Math.ceil((channelCooldown*1000-(now-lastMessageTime))/1000);
 alert(`Cooldown active. Wait ${left}s.`);
 return;
 }
-let mediaUrl="";
-if(mediaFileInput.files&&mediaFileInput.files[0]){
-const file=mediaFileInput.files[0];
-if(file.size>4*1024*1024){alert("File too large (max 4 MB).");mediaFileInput.value="";return;}
+if(fileInp&&fileInp.files&&fileInp.files[0]){
+const file=fileInp.files[0];
+if(file.size>4*1024*1024){alert("File too large (max 4 MB).");fileInp.value="";return;}
 const reader=new FileReader();
 reader.onload=async ev=>{
-mediaUrl=ev.target.result;mediaFileInput.value="";
+const mediaUrl=ev.target.result;fileInp.value="";
 if(currentChannelType==='forum'&&activeForumPostId)executeOptimisticForumComment(text,mediaUrl);
 else executeOptimisticSend(text,mediaUrl);
 if(channelCooldown>0)startCooldown(channelCooldown);
 };
 reader.readAsDataURL(file);return;
 }
-messageInput.value='';
+if(inp)inp.value='';
 if(currentChannelType==='forum'&&activeForumPostId)executeOptimisticForumComment(text,"");
 else executeOptimisticSend(text,"");
 if(channelCooldown>0)startCooldown(channelCooldown);
-});
+};
+const label=document.querySelector('.file-upload-label');
+if(label)label.onclick=()=>{const fi=document.getElementById('media-file-input');if(fi)fi.click();};
+}
+
+chatForm.addEventListener('submit',async e=>{e.preventDefault();e.stopPropagation();});
 
 function executeOptimisticSend(text,mediaUrl){
 const time=Date.now();
@@ -557,30 +578,35 @@ lastMessageTime=time;
 const avatar=getStableAvatar(currentUser,cachedAvatar);
 const date=new Date(time);
 const timeStr=`${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+const chatMsgs=document.getElementById('chat-messages');
+if(!chatMsgs)return;
 const div=document.createElement('div');div.className='message';
 let mediaHtml='';
 if(mediaUrl)mediaHtml=(mediaUrl.startsWith('data:video')||mediaUrl.includes('video'))?`<video src="${mediaUrl}" controls></video>`:`<img src="${mediaUrl}" alt="media">`;
 let replyHtml='';
 if(replyToMsg)replyHtml=`<div style="font-size:11px;color:#555;margin-bottom:4px;border-left:2px solid #333;padding-left:8px">Reply to ${escapeHtml(replyToMsg.user)}: ${escapeHtml((replyToMsg.text||'').substring(0,50))}</div>`;
 div.innerHTML=`<img class="msg-avatar" src="${avatar}" alt=""><div class="msg-content"><div class="msg-header-row"><span class="msg-user">${escapeHtml(currentUser)}</span><span class="msg-time">${timeStr}</span></div>${replyHtml}<div class="msg-text">${parseMarkdown(escapeHtml(text))}</div>${mediaHtml}</div>`;
-const emptyState=chatMessages.querySelector('.empty-state');if(emptyState)emptyState.remove();
-chatMessages.appendChild(div);chatMessages.scrollTop=chatMessages.scrollHeight;
+const emptyState=chatMsgs.querySelector('.empty-state');if(emptyState)emptyState.remove();
+chatMsgs.appendChild(div);chatMsgs.scrollTop=chatMsgs.scrollHeight;
 const payload={user:currentUser,avatar,text,media:mediaUrl,time,reactions:{}};
 if(replyToMsg){payload.replyTo={id:replyToMsg.id,user:replyToMsg.user,text:replyToMsg.text};replyToMsg=null;}
 fetch(`${FIREBASE_URL}/messages/${currentChannel}.json?auth=${FIREBASE_TOKEN}`,{method:'POST',body:JSON.stringify(payload)}).then(()=>{lastMessagesHash="";}).catch(err=>console.error("Send failed:",err));
 }
 
 function executeOptimisticForumComment(text,mediaUrl){
+if(!activeForumPostId)return;
 const time=Date.now();
 const avatar=getStableAvatar(currentUser,cachedAvatar);
 const date=new Date(time);
 const timeStr=`${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+const chatMsgs=document.getElementById('chat-messages');
+if(!chatMsgs)return;
 const div=document.createElement('div');div.className='message';
 let mediaHtml='';
 if(mediaUrl)mediaHtml=(mediaUrl.startsWith('data:video')||mediaUrl.includes('video'))?`<video src="${mediaUrl}" controls></video>`:`<img src="${mediaUrl}" alt="media">`;
 div.innerHTML=`<img class="msg-avatar" src="${avatar}" alt=""><div class="msg-content"><div class="msg-header-row"><span class="msg-user">${escapeHtml(currentUser)}</span><span class="msg-time">${timeStr}</span></div><div class="msg-text">${parseMarkdown(escapeHtml(text))}</div>${mediaHtml}</div>`;
-const emptyState=chatMessages.querySelector('.empty-state');if(emptyState)emptyState.remove();
-chatMessages.appendChild(div);chatMessages.scrollTop=chatMessages.scrollHeight;
+const emptyState=chatMsgs.querySelector('.empty-state');if(emptyState)emptyState.remove();
+chatMsgs.appendChild(div);chatMsgs.scrollTop=chatMsgs.scrollHeight;
 fetch(`${FIREBASE_URL}/forum_comments/${currentChannel}/${activeForumPostId}.json?auth=${FIREBASE_TOKEN}`,{method:'POST',body:JSON.stringify({user:currentUser,avatar,text,media:mediaUrl,time})}).then(()=>{lastMessagesHash="";}).catch(err=>console.error("Forum comment failed:",err));
 }
 
@@ -599,12 +625,8 @@ const rolesRes=await fetch(`${FIREBASE_URL}/roles.json?auth=${FIREBASE_TOKEN}`);
 const roles=await rolesRes.json()||{};
 const rolePerms=roles[uRole]?.permissions||{};
 if(rolePerms.administrator)return true;
-if(action==='read'||action==='view'){
-if(rolePerms.view_channels===false)return false;
-}
-if(action==='write'||action==='send'){
-if(rolePerms.send_messages===false)return false;
-}
+if(action==='read'||action==='view'){if(rolePerms.view_channels===false)return false;}
+if(action==='write'||action==='send'){if(rolePerms.send_messages===false)return false;}
 const perms=chanObj.permissions||{};
 if(perms.users&&perms.users[currentUser]&&perms.users[currentUser][action]!==undefined)return perms.users[currentUser][action];
 const rolePerm=perms[uRole];
@@ -672,8 +694,8 @@ else if(opt==='create-channel'){div.textContent='Create text channel';div.onclic
 else if(opt==='create-forum'){div.textContent='Create forum channel';div.onclick=()=>handleCreateForumPrompt(contextTarget&&contextTarget.type==='category'?contextTarget.id:null)}
 else if(opt==='create-category'){div.textContent='Create category';div.onclick=()=>handleCreateCategoryPrompt()}
 else if(opt==='edit-roles'){div.textContent='Edit roles';div.onclick=()=>openRolesModal()}
-else if(opt==='reply'){div.textContent='Reply';div.onclick=()=>{if(contextTarget&&contextTarget.msg){replyToMsg=contextTarget.msg;messageInput.placeholder=`Replying to ${contextTarget.msg.user}...`;messageInput.focus();}}}
-else if(opt==='edit-msg'){div.textContent='Edit message';div.onclick=()=>{if(contextTarget&&contextTarget.msg){editingMsgId=contextTarget.msg.id;messageInput.value=contextTarget.msg.text||'';messageInput.placeholder='Editing message...';messageInput.focus();}}}
+else if(opt==='reply'){div.textContent='Reply';div.onclick=()=>{if(contextTarget&&contextTarget.msg){replyToMsg=contextTarget.msg;const inp=document.getElementById('message-input');if(inp){inp.placeholder=`Replying to ${contextTarget.msg.user}...`;inp.focus();}}}}
+else if(opt==='edit-msg'){div.textContent='Edit message';div.onclick=()=>{if(contextTarget&&contextTarget.msg){editingMsgId=contextTarget.msg.id;const inp=document.getElementById('message-input');if(inp){inp.value=contextTarget.msg.text||'';inp.placeholder='Editing message...';inp.focus();}}}}
 else if(opt==='react'){div.textContent='Add reaction';div.onclick=()=>{const emoji=prompt("Enter reaction text or symbol:");if(emoji&&contextTarget&&contextTarget.msg)addReaction(contextTarget.msg.id,emoji.trim());}}
 contextMenu.appendChild(div);
 });
@@ -714,7 +736,7 @@ if(!isAdmin)return;
 if(contextTarget&&contextTarget.type==='channel')openChannelSettingsModal(contextTarget.catId,contextTarget.id);
 }
 
-function startPolling(){fetchData();setInterval(fetchData,3000)}
+function startPolling(){fetchData();setInterval(fetchData,3500)}
 
 async function fetchData(){
 if(isPolling)return;isPolling=true;
@@ -748,9 +770,11 @@ if(!canRead){alert("ACCESS DENIED — NO VIEW PERMISSION");return}
 currentChannel=chKey;currentChannelCatKey=catKey;currentChannelType=ch.type||'text';
 channelCooldown=ch.cooldown||0;
 activeForumPostId=null;replyToMsg=null;editingMsgId=null;
+displayedCount=MSG_PAGE_SIZE;allMessagesCache={};
 activeChannelTitle.textContent=`${symbol} ${ch.name}`;
 channelTopic.textContent=ch.topic||'';
-messageInput.placeholder=`Message ${symbol}${ch.name}`;
+const inp=document.getElementById('message-input');
+if(inp)inp.placeholder=`Message ${symbol}${ch.name}`;
 lastMessagesHash="";fetchData();
 };
 if(isAdmin){
@@ -796,24 +820,6 @@ mDiv.onclick=()=>openMemberProfileModal(user.name,user);sec.appendChild(mDiv);
 });
 sidebarMembersContainer.appendChild(sec);
 });
-const nonHoisted=[];
-Object.keys(users).forEach(uname=>{
-const uData=users[uname];
-const uRole=uData.role&&roles[uData.role]?uData.role:'member';
-if(!roles[uRole]?.hoist&&uRole!=='admin'&&uRole!=='member')nonHoisted.push({name:uname,...uData});
-});
-if(nonHoisted.length){
-const sec=document.createElement('div');sec.className='members-section';
-sec.innerHTML=`<h3 style="color:#888">ONLINE — ${nonHoisted.length}</h3>`;
-nonHoisted.forEach(user=>{
-const status=user.status||'offline';
-const mDiv=document.createElement('div');mDiv.className='member-item';
-const avSrc=getStableAvatar(user.name,user.avatar);
-mDiv.innerHTML=`<div style="position:relative"><img class="member-avatar-sm" src="${avSrc}" alt="" loading="eager"><div class="status-dot status-${status}"></div></div><span>${escapeHtml(user.name)}</span>`;
-mDiv.onclick=()=>openMemberProfileModal(user.name,user);sec.appendChild(mDiv);
-});
-sidebarMembersContainer.appendChild(sec);
-}
 }catch(err){console.error(err)}finally{isPolling=false}
 }
 
@@ -821,14 +827,14 @@ async function renderTextView(){
 if(!document.getElementById('chat-messages')){
 mainDisplayArea.innerHTML=`<div class="chat-header"><div style="display:flex;align-items:center"><span id="active-channel-title"># general</span><span class="topic" id="channel-topic"></span></div><button class="channel-settings-gear" id="channel-gear-btn" title="Channel Settings">⚙</button></div><div class="chat-messages" id="chat-messages"></div><div class="typing-indicator" id="typing-indicator"></div><div class="chat-input-area" id="chat-input-container"><form class="chat-input-form" id="chat-form"><label class="file-upload-label" title="Upload">+</label><input type="file" id="media-file-input" accept="image/*,video/*" style="display:none"><input type="text" id="message-input" placeholder="Message channel..." autocomplete="off" maxlength="2000"><button type="submit" id="send-btn">SEND</button></form><div class="cooldown-bar" id="cooldown-bar"><div class="cooldown-fill" id="cooldown-fill"></div></div><div class="cooldown-text" id="cooldown-text"></div></div>`;
 document.getElementById('channel-gear-btn').onclick=e=>{e.stopPropagation();if(!isAdmin){alert("ACCESS DENIED — ADMIN ONLY");return}openChannelSettingsModal(currentChannelCatKey,currentChannel);};
-document.getElementById('chat-form').onsubmit=chatForm.onsubmit;
-document.querySelector('.file-upload-label').onclick=()=>document.getElementById('media-file-input').click();
+bindChatForm();
 }
 const canWrite=await checkPermission(currentChannel,'write');
 const inputContainer=document.getElementById('chat-input-container');
-if(!canWrite){inputContainer.style.display='none';}else{inputContainer.style.display='block';}
+if(inputContainer)inputContainer.style.display=canWrite?'block':'none';
 const msgRes=await fetch(`${FIREBASE_URL}/messages/${currentChannel}.json?auth=${FIREBASE_TOKEN}`);
 const messages=await msgRes.json()||{};
+allMessagesCache=messages;
 const msgEntries=Object.entries(messages).sort((a,b)=>(a[1].time||0)-(b[1].time||0));
 const newHash=JSON.stringify(msgEntries.map(e=>e[0]+JSON.stringify(e[1].reactions||{})));
 if(newHash!==lastMessagesHash){
@@ -836,11 +842,25 @@ lastMessagesHash=newHash;
 const chatMsgs=document.getElementById('chat-messages');
 if(!chatMsgs)return;
 const isScrolledToBottom=chatMsgs.scrollHeight-chatMsgs.scrollTop<=chatMsgs.clientHeight+80;
+const total=msgEntries.length;
+const startIdx=Math.max(0,total-displayedCount);
+const visible=msgEntries.slice(startIdx);
 chatMsgs.innerHTML='';
-if(msgEntries.length===0){
+if(total===0){
 chatMsgs.innerHTML='<div class="empty-state">No messages yet. Start the conversation.</div>';
 }else{
-msgEntries.forEach(([msgId,msg])=>{
+if(startIdx>0){
+const loadMore=document.createElement('div');
+loadMore.className='load-more';
+loadMore.textContent=`Load older messages (${startIdx} remaining)`;
+loadMore.onclick=()=>{
+displayedCount+=MSG_PAGE_SIZE;
+lastMessagesHash="";
+renderTextView();
+};
+chatMsgs.appendChild(loadMore);
+}
+visible.forEach(([msgId,msg])=>{
 const date=new Date(msg.time||Date.now());
 const timeStr=`${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
 const div=document.createElement('div');div.className='message';div.dataset.msgid=msgId;
@@ -862,8 +882,8 @@ const canEdit=msg.user===currentUser;
 const avSrc=getStableAvatar(msg.user,msg.avatar);
 div.innerHTML=`<img class="msg-avatar" src="${avSrc}" alt="" data-user="${escapeHtml(msg.user)}" loading="eager"><div class="msg-content"><div class="msg-header-row"><span class="msg-user" data-user="${escapeHtml(msg.user)}">${escapeHtml(msg.user)}</span><span class="msg-time">${timeStr}</span></div>${replyHtml}<div class="msg-text">${parseMarkdown(escapeHtml(msg.text||''))}</div>${mediaHtml}${reactionsHtml}</div><div class="msg-actions">${canEdit?`<button class="msg-action-btn" data-edit="${msgId}">Edit</button>`:''}${canDelete?`<button class="msg-action-btn" data-del="${msgId}">Del</button>`:''}<button class="msg-action-btn" data-reply="${msgId}">Reply</button><button class="msg-action-btn" data-react="${msgId}">React</button></div>`;
 if(canDelete)div.querySelector('[data-del]').onclick=async ev=>{ev.stopPropagation();if(!confirm("Delete this message?"))return;await fetch(`${FIREBASE_URL}/messages/${currentChannel}/${msgId}.json?auth=${FIREBASE_TOKEN}`,{method:'DELETE'});lastMessagesHash="";fetchData();};
-if(canEdit)div.querySelector('[data-edit]').onclick=ev=>{ev.stopPropagation();editingMsgId=msgId;messageInput.value=msg.text||'';messageInput.placeholder='Editing message...';messageInput.focus();};
-div.querySelector('[data-reply]').onclick=ev=>{ev.stopPropagation();replyToMsg={id:msgId,user:msg.user,text:msg.text};messageInput.placeholder=`Replying to ${msg.user}...`;messageInput.focus();};
+if(canEdit)div.querySelector('[data-edit]').onclick=ev=>{ev.stopPropagation();editingMsgId=msgId;const inp=document.getElementById('message-input');if(inp){inp.value=msg.text||'';inp.placeholder='Editing message...';inp.focus();}};
+div.querySelector('[data-reply]').onclick=ev=>{ev.stopPropagation();replyToMsg={id:msgId,user:msg.user,text:msg.text};const inp=document.getElementById('message-input');if(inp){inp.placeholder=`Replying to ${msg.user}...`;inp.focus();}};
 div.querySelector('[data-react]').onclick=ev=>{ev.stopPropagation();const emoji=prompt("Enter reaction:");if(emoji)addReaction(msgId,emoji.trim());};
 div.querySelectorAll('.reaction').forEach(r=>{r.onclick=()=>addReaction(r.dataset.msgid,r.dataset.emoji);});
 div.querySelectorAll('[data-user]').forEach(el=>{el.onclick=async()=>{const uname=el.dataset.user;const uRes=await fetch(`${FIREBASE_URL}/users/${uname}.json?auth=${FIREBASE_TOKEN}`);const uData=await uRes.json();if(uData)openMemberProfileModal(uname,uData);};});
@@ -872,6 +892,7 @@ chatMsgs.appendChild(div);
 });
 if(isScrolledToBottom)chatMsgs.scrollTop=chatMsgs.scrollHeight;
 }
+bindChatForm();
 }
 }
 
@@ -889,9 +910,12 @@ postsHtml+=`<div class="forum-post-card" data-postid="${postId}"><div class="for
 });
 mainDisplayArea.innerHTML=`<div class="chat-header"><span>F Forum</span><button class="channel-settings-gear" id="channel-gear-btn">⚙</button></div><div class="forum-container"><div class="forum-toolbar"><span style="font-size:12px;letter-spacing:1px;font-weight:600">PUBLICATIONS</span>${canCreatePost?`<button class="admin-panel-btn" id="create-forum-post-btn" style="flex-grow:0;padding:8px 14px">+ CREATE</button>`:''}</div>${postEntries.length===0?'<div class="empty-state">No publications yet.</div>':postsHtml}</div>`;
 document.getElementById('channel-gear-btn').onclick=e=>{e.stopPropagation();if(!isAdmin){alert("ACCESS DENIED — ADMIN ONLY");return}openChannelSettingsModal(currentChannelCatKey,currentChannel);};
-if(canCreatePost)document.getElementById('create-forum-post-btn').onclick=()=>openCreateForumPostModal();
+if(canCreatePost){
+const btn=document.getElementById('create-forum-post-btn');
+if(btn)btn.onclick=()=>openCreateForumPostModal();
+}
 mainDisplayArea.querySelectorAll('.forum-post-card').forEach(card=>{
-card.onclick=()=>{activeForumPostId=card.dataset.postid;renderForumPostDetail();};
+card.onclick=()=>{activeForumPostId=card.dataset.postid;renderForumView();};
 });
 }else{
 const postRes=await fetch(`${FIREBASE_URL}/forum_posts/${currentChannel}/${activeForumPostId}.json?auth=${FIREBASE_TOKEN}`);
@@ -907,14 +931,21 @@ let mediaHtml='';
 if(c.media)mediaHtml=(c.media.startsWith('data:video')||c.media.includes('video'))?`<video src="${c.media}" controls></video>`:`<img src="${c.media}" alt="media">`;
 const canDel=isAdmin||c.user===currentUser;
 const avSrc=getStableAvatar(c.user,c.avatar);
-commentsHtml+=`<div class="message"><img class="msg-avatar" src="${avSrc}" alt="" loading="eager"><div class="msg-content"><div class="msg-header-row"><span class="msg-user">${escapeHtml(c.user)}</span><span class="msg-time">${timeStr}</span></div><div class="msg-text">${parseMarkdown(escapeHtml(c.text||''))}</div>${mediaHtml}</div>${canDel?`<div class="msg-actions"><button class="msg-action-btn" onclick="deleteForumComment('${activeForumPostId}','${cId}')">Del</button></div>`:''}</div>`;
+commentsHtml+=`<div class="message"><img class="msg-avatar" src="${avSrc}" alt="" loading="eager"><div class="msg-content"><div class="msg-header-row"><span class="msg-user">${escapeHtml(c.user)}</span><span class="msg-time">${timeStr}</span></div><div class="msg-text">${parseMarkdown(escapeHtml(c.text||''))}</div>${mediaHtml}</div>${canDel?`<div class="msg-actions"><button class="msg-action-btn" data-delc="${cId}">Del</button></div>`:''}</div>`;
 });
 mainDisplayArea.innerHTML=`<div class="chat-header"><div style="display:flex;align-items:center;gap:12px"><button id="back-to-forum-list" style="background:none;border:none;color:#888;cursor:pointer;font-size:13px">← Back</button><span>F ${escapeHtml(post.title)}</span></div><button class="channel-settings-gear" id="channel-gear-btn">⚙</button></div><div class="chat-messages" id="chat-messages"><div class="message" style="border-bottom:1px solid #1f1f1f;padding-bottom:12px;margin-bottom:8px"><img class="msg-avatar" src="${getStableAvatar(post.user,post.avatar)}" alt="" loading="eager"><div class="msg-content"><div class="msg-header-row"><span class="msg-user">${escapeHtml(post.user)}</span><span class="msg-time">${new Date(post.time).toLocaleDateString()}</span></div><div style="font-weight:600;margin-bottom:4px;color:#eee">${escapeHtml(post.title)}</div><div class="msg-text">${parseMarkdown(escapeHtml(post.text))}</div></div></div>${commentsHtml}</div><div class="chat-input-area" id="chat-input-container" style="${canWrite?'':'display:none'}"><form class="chat-input-form" id="chat-form"><label class="file-upload-label" title="Upload">+</label><input type="file" id="media-file-input" accept="image/*,video/*" style="display:none"><input type="text" id="message-input" placeholder="Reply..." autocomplete="off" maxlength="2000"><button type="submit" id="send-btn">SEND</button></form></div>`;
 document.getElementById('back-to-forum-list').onclick=()=>{activeForumPostId=null;renderForumView();};
 document.getElementById('channel-gear-btn').onclick=e=>{e.stopPropagation();if(!isAdmin){alert("ACCESS DENIED — ADMIN ONLY");return}openChannelSettingsModal(currentChannelCatKey,currentChannel);};
-document.getElementById('chat-form').onsubmit=chatForm.onsubmit;
-document.querySelector('.file-upload-label').onclick=()=>document.getElementById('media-file-input').click();
-const msgContainer=document.getElementById('chat-messages');msgContainer.scrollTop=msgContainer.scrollHeight;
+document.querySelectorAll('[data-delc]').forEach(btn=>{
+btn.onclick=async()=>{
+if(!confirm("Delete this comment?"))return;
+await fetch(`${FIREBASE_URL}/forum_comments/${currentChannel}/${activeForumPostId}/${btn.dataset.delc}.json?auth=${FIREBASE_TOKEN}`,{method:'DELETE'});
+renderForumView();
+};
+});
+bindChatForm();
+const msgContainer=document.getElementById('chat-messages');
+if(msgContainer)msgContainer.scrollTop=msgContainer.scrollHeight;
 }
 }
 
@@ -934,19 +965,16 @@ modal.remove();renderForumView();
 };
 }
 
-async function deleteForumComment(postId,commentId){
-if(!confirm("Delete this comment?"))return;
-await fetch(`${FIREBASE_URL}/forum_comments/${currentChannel}/${postId}/${commentId}.json?auth=${FIREBASE_TOKEN}`,{method:'DELETE'});
-renderForumView();
-}
-
 async function openDM(targetUser){
 currentChannel='dm_'+[currentUser,targetUser].sort().join('_');
 currentChannelType='text';
 channelCooldown=0;
+activeForumPostId=null;
+displayedCount=MSG_PAGE_SIZE;
 activeChannelTitle.textContent=`@ ${targetUser}`;
 channelTopic.textContent='Direct Message';
-messageInput.placeholder=`Message @${targetUser}`;
+const inp=document.getElementById('message-input');
+if(inp)inp.placeholder=`Message @${targetUser}`;
 lastMessagesHash="";
 renderTextView();
 }
@@ -962,12 +990,11 @@ return text
 
 function escapeHtml(str){return(str||'').replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;")}
 function generateDefaultAvatar(name){
-const canvas=document.createElement('canvas');canvas.width=40;canvas.height=40;
+const canvas=document.createElement('canvas');canvas.width=80;canvas.height=80;
 const ctx=canvas.getContext('2d');
-ctx.fillStyle='#1a1a1a';ctx.fillRect(0,0,40,40);
-ctx.strokeStyle='#333';ctx.lineWidth=1;ctx.strokeRect(0.5,0.5,39,39);
-ctx.fillStyle='#ccc';ctx.font='bold 16px Segoe UI';ctx.textAlign='center';ctx.textBaseline='middle';
-ctx.fillText((name||'U').charAt(0).toUpperCase(),20,22);
+ctx.fillStyle='#1a1a1a';ctx.beginPath();ctx.arc(40,40,40,0,Math.PI*2);ctx.fill();
+ctx.fillStyle='#ccc';ctx.font='bold 32px Segoe UI';ctx.textAlign='center';ctx.textBaseline='middle';
+ctx.fillText((name||'U').charAt(0).toUpperCase(),40,42);
 return canvas.toDataURL();
 }
 </script>
