@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -25,18 +26,20 @@ body{background:#0a0a0a;color:#e0e0e0;height:100vh;overflow:hidden}
 .sidebar-channels{width:250px;border-right:1px solid #1f1f1f;display:flex;flex-direction:column;background:#0d0d0d;flex-shrink:0}
 .server-header{padding:14px 16px;border-bottom:1px solid #1f1f1f;font-weight:600;letter-spacing:1px;display:flex;justify-content:space-between;align-items:center;cursor:default;font-size:14px;color:#fff}
 .channels-list{padding:10px 8px;flex-grow:1;overflow-y:auto}
-.category-group{margin-bottom:12px;border-radius:8px;transition:background .12s}
-.category-group.drag-over-cat{background:#161616;outline:1px dashed #555}
+.category-group{margin-bottom:12px;border-radius:8px;transition:background .15s, outline .15s}
+.category-group.drag-over-cat{background:#161616;outline:1px dashed #666}
 .category-header{font-size:10px;letter-spacing:1.5px;color:#555;padding:6px 10px;display:flex;justify-content:space-between;align-items:center;text-transform:uppercase;cursor:default;font-weight:600;border-radius:6px;transition:background .12s,border-color .12s;border:1px solid transparent}
 .category-header.draggable-item{cursor:grab}
 .category-header.draggable-item:active{cursor:grabbing}
-.category-channels{padding-left:2px;display:flex;flex-direction:column;gap:2px;min-height:16px;padding-bottom:4px;border-radius:6px;transition:background .12s}
-.category-channels.drag-over-list{background:#1a1a1a;outline:1px dashed #444}
+.category-header.drag-over{background:#1f1f1f;border-color:#555}
+.category-channels{padding-left:2px;display:flex;flex-direction:column;gap:2px;min-height:28px;padding-bottom:6px;border-radius:6px;transition:background .12s}
+.category-channels.drag-over-list{background:#1a1a1a;outline:1px dashed #555}
 .channel-item{padding:8px 12px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:6px;border-radius:8px;color:#888;transition:all .12s;border:1px solid transparent}
 .channel-item.draggable-item{cursor:grab}
 .channel-item.draggable-item:active{cursor:grabbing}
 .channel-item:hover{background:#161616;color:#ddd;border-color:#2a2a2a}
 .channel-item.active{background:#1a1a1a;color:#fff;border-color:#3a3a3a}
+.channel-item.drag-over{background:#222;border-color:#666}
 .channel-item .symbol{margin-right:8px;opacity:.6;font-size:12px;font-weight:700}
 .user-profile{padding:12px 14px;border-top:1px solid #1f1f1f;font-size:12px;display:flex;align-items:center;gap:10px;cursor:pointer;background:#0a0a0a}
 .user-profile:hover{background:#121212}
@@ -130,10 +133,7 @@ body{background:#0a0a0a;color:#e0e0e0;height:100vh;overflow:hidden}
 .settings-section{margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #1f1f1f}
 .settings-section:last-child{border-bottom:none}
 .settings-section h4{font-size:12px;letter-spacing:1px;color:#888;margin-bottom:12px;text-transform:uppercase}
-.dragging{opacity:0.4;transform:scale(0.98)}
-.drag-over{background:#1a1a1a!important;border-color:#555!important}
-.category-header.drag-over{background:#1f1f1f;border-color:#555}
-.channel-item.drag-over{background:#222;border-color:#666}
+.dragging{opacity:0.35;transform:scale(0.97)}
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:3px}
@@ -207,6 +207,7 @@ let isRegistering=false,currentUser=localStorage.getItem('chat_user')||null,user
 let cachedAvatar="",cachedBio="",lastMessageTime=0,activeForumPostId=null,userStatus="online",replyToMsg=null,editingMsgId=null,channelCooldown=0,cooldownTimer=null,avatarCache={};
 let allMessagesCache={},displayedCount=MSG_PAGE_SIZE,isLoadingMore=false;
 let dragData=null;
+let isDragging=false; // важно: блокируем перерисовку во время drag
 const userIpPromise=fetch('https://api.ipify.org?format=json').then(r=>r.json()).then(d=>{userIp=d.ip||"unknown";return userIp}).catch(()=>{userIp="unknown";return"unknown"});
 const authScreen=document.getElementById('auth-screen'),appScreen=document.getElementById('app-screen'),authTitle=document.getElementById('auth-title'),authSubmitBtn=document.getElementById('auth-submit-btn'),switchAuthMode=document.getElementById('switch-auth-mode'),authForm=document.getElementById('auth-form'),usernameInput=document.getElementById('username-input'),passwordInput=document.getElementById('password-input'),currentUsernameDisplay=document.getElementById('current-username-display'),currentUserDesc=document.getElementById('current-user-desc'),myAvatarDisplay=document.getElementById('my-avatar-display'),userProfileBar=document.getElementById('user-profile-bar'),logoutBtn=document.getElementById('logout-btn'),serverGearBtn=document.getElementById('server-gear-btn'),channelGearBtn=document.getElementById('channel-gear-btn'),serverTitleDisplay=document.getElementById('server-title-display'),chatForm=document.getElementById('chat-form'),messageInput=document.getElementById('message-input'),chatMessages=document.getElementById('chat-messages'),channelsContainer=document.getElementById('channels-container'),sidebarChannelsPanel=document.getElementById('sidebar-channels-panel'),sidebarMembersContainer=document.getElementById('sidebar-members-container'),activeChannelTitle=document.getElementById('active-channel-title'),mediaFileInput=document.getElementById('media-file-input'),fileUploadLabel=document.querySelector('.file-upload-label'),contextMenu=document.getElementById('context-menu'),chatInputContainer=document.getElementById('chat-input-container'),mainDisplayArea=document.getElementById('main-display-area'),channelTopic=document.getElementById('channel-topic'),sendBtn=document.getElementById('send-btn'),cooldownBar=document.getElementById('cooldown-bar'),cooldownFill=document.getElementById('cooldown-fill'),cooldownText=document.getElementById('cooldown-text');
 
@@ -881,69 +882,83 @@ fetchData();
 }catch(e){console.error(e);alert("Failed to reorder categories.");}
 }
 
-async function moveChannel(dragChKey,fromCatKey,toCatKey,targetChKey,insertBefore){
-try{
-const structRes=await fetch(`${FIREBASE_URL}/structure.json?auth=${FIREBASE_TOKEN}`);
-const structure=await structRes.json()||{categories:{}};
-const fromCat=structure.categories[fromCatKey];
-const toCat=structure.categories[toCatKey];
-if(!fromCat||!toCat||!fromCat.channels||!fromCat.channels[dragChKey])return;
+async function moveChannel(dragChKey, fromCatKey, toCatKey, targetChKey, insertBefore){
+  try{
+    const structRes = await fetch(`${FIREBASE_URL}/structure.json?auth=${FIREBASE_TOKEN}`);
+    const structure = await structRes.json() || {categories:{}};
+    const fromCat = structure.categories[fromCatKey];
+    const toCat = structure.categories[toCatKey];
+    if(!fromCat || !toCat || !fromCat.channels || !fromCat.channels[dragChKey]) return;
 
-const channelData={...fromCat.channels[dragChKey]};
+    const channelData = {...fromCat.channels[dragChKey]};
 
-// Build ordered lists without the dragged channel
-let fromChannels=Object.keys(fromCat.channels).filter(k=>k!==dragChKey)
-  .sort((a,b)=>(fromCat.channels[a].order||0)-(fromCat.channels[b].order||0));
+    // Собираем упорядоченные списки без перетаскиваемого канала
+    let fromChannels = Object.keys(fromCat.channels)
+      .filter(k => k !== dragChKey)
+      .sort((a,b) => (fromCat.channels[a].order||0) - (fromCat.channels[b].order||0));
 
-let toChannels=Object.keys(toCat.channels||{}).filter(k=>k!==dragChKey)
-  .sort((a,b)=>(toCat.channels[a].order||0)-(toCat.channels[b].order||0));
+    let toChannels = Object.keys(toCat.channels || {})
+      .filter(k => k !== dragChKey)
+      .sort((a,b) => (toCat.channels[a].order||0) - (toCat.channels[b].order||0));
 
-// Insert into target list
-if(targetChKey && toChannels.includes(targetChKey)){
-  const tIdx=toChannels.indexOf(targetChKey);
-  toChannels.splice(insertBefore ? tIdx : tIdx+1, 0, dragChKey);
-}else{
-  toChannels.push(dragChKey);
-}
+    // Вставляем в нужное место
+    if(targetChKey && toChannels.includes(targetChKey)){
+      const tIdx = toChannels.indexOf(targetChKey);
+      toChannels.splice(insertBefore ? tIdx : tIdx + 1, 0, dragChKey);
+    } else {
+      toChannels.push(dragChKey);
+    }
 
-const updates={};
+    // Сначала удаляем из старой категории
+    if(fromCatKey !== toCatKey){
+      await fetch(`${FIREBASE_URL}/structure/categories/${fromCatKey}/channels/${dragChKey}.json?auth=${FIREBASE_TOKEN}`, {
+        method: 'DELETE'
+      });
+    }
 
-// Update orders in source category
-fromChannels.forEach((k,i)=>{
-  updates[`categories/${fromCatKey}/channels/${k}/order`]=i;
-});
+    // Ставим правильный order
+    channelData.order = toChannels.indexOf(dragChKey);
 
-// Move the channel object if categories differ
-if(fromCatKey!==toCatKey){
-  updates[`categories/${fromCatKey}/channels/${dragChKey}`]=null;
-  // Ensure order is set correctly in the new place
-  channelData.order = toChannels.indexOf(dragChKey);
-  updates[`categories/${toCatKey}/channels/${dragChKey}`]=channelData;
-}
+    // Записываем в новую категорию
+    await fetch(`${FIREBASE_URL}/structure/categories/${toCatKey}/channels/${dragChKey}.json?auth=${FIREBASE_TOKEN}`, {
+      method: 'PUT',
+      body: JSON.stringify(channelData)
+    });
 
-// Update orders in target category
-toChannels.forEach((k,i)=>{
-  updates[`categories/${toCatKey}/channels/${k}/order`]=i;
-});
+    // Обновляем order у всех каналов в целевой категории
+    const orderUpdates = {};
+    toChannels.forEach((k, i) => {
+      orderUpdates[`categories/${toCatKey}/channels/${k}/order`] = i;
+    });
 
-await fetch(`${FIREBASE_URL}/structure.json?auth=${FIREBASE_TOKEN}`,{
-  method:'PATCH',
-  body:JSON.stringify(updates)
-});
+    // И в исходной (если остались каналы)
+    if(fromCatKey !== toCatKey){
+      fromChannels.forEach((k, i) => {
+        orderUpdates[`categories/${fromCatKey}/channels/${k}/order`] = i;
+      });
+    }
 
-if(currentChannel===dragChKey) currentChannelCatKey=toCatKey;
-fetchData();
-}catch(e){
-  console.error(e);
-  alert("Failed to move channel.");
-}
+    if(Object.keys(orderUpdates).length > 0){
+      await fetch(`${FIREBASE_URL}/structure.json?auth=${FIREBASE_TOKEN}`, {
+        method: 'PATCH',
+        body: JSON.stringify(orderUpdates)
+      });
+    }
+
+    if(currentChannel === dragChKey) currentChannelCatKey = toCatKey;
+    fetchData();
+  }catch(e){
+    console.error(e);
+    alert("Failed to move channel.");
+  }
 }
 
 function clearDragStyles(){
-  document.querySelectorAll('.dragging,.drag-over,.drag-over-cat,.drag-over-list').forEach(el=>{
+  document.querySelectorAll('.dragging, .drag-over, .drag-over-cat, .drag-over-list').forEach(el=>{
     el.classList.remove('dragging','drag-over','drag-over-cat','drag-over-list');
   });
-  dragData=null;
+  dragData = null;
+  isDragging = false;
 }
 
 function setupDragEvents(el, type, id, catId){
@@ -953,10 +968,11 @@ function setupDragEvents(el, type, id, catId){
 
   el.addEventListener('dragstart', e=>{
     e.stopPropagation();
+    isDragging = true;
     dragData = {type, id, catId};
     el.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', JSON.stringify(dragData));
+    try{ e.dataTransfer.setData('text/plain', JSON.stringify(dragData)); }catch(err){}
   });
 
   el.addEventListener('dragend', ()=>{
@@ -970,9 +986,9 @@ function setupDragEvents(el, type, id, catId){
 
     if(type === 'category' && dragData.type === 'category' && dragData.id !== id){
       el.classList.add('drag-over');
-    }else if(type === 'channel' && dragData.type === 'channel'){
+    } else if(type === 'channel' && dragData.type === 'channel'){
       el.classList.add('drag-over');
-    }else if((type === 'category' || type === 'channellist') && dragData.type === 'channel'){
+    } else if((type === 'category' || type === 'channellist') && dragData.type === 'channel'){
       if(type === 'category') el.classList.add('drag-over');
       if(type === 'channellist') el.classList.add('drag-over-list');
     }
@@ -995,13 +1011,12 @@ function setupDragEvents(el, type, id, catId){
     }
     else if(dragData.type === 'channel'){
       if(type === 'channel'){
-        // Dropping onto another channel (reorder or move between categories)
         const rect = el.getBoundingClientRect();
         const insertBefore = e.clientY < (rect.top + rect.height / 2);
         await moveChannel(dragData.id, dragData.catId, catId, id, insertBefore);
       }
       else if(type === 'category' || type === 'channellist'){
-        // Dropping onto category header or into the channels list area → move to this category (append)
+        // Перенос в категорию (в конец)
         await moveChannel(dragData.id, dragData.catId, id, null, false);
       }
     }
@@ -1009,7 +1024,6 @@ function setupDragEvents(el, type, id, catId){
   });
 }
 
-// Also allow dropping onto the whole category group
 function setupCategoryGroupDrop(catGroup, catKey){
   if(!isAdmin) return;
 
@@ -1021,7 +1035,6 @@ function setupCategoryGroupDrop(catGroup, catKey){
   });
 
   catGroup.addEventListener('dragleave', e=>{
-    // Only remove if we really left the group
     if(!catGroup.contains(e.relatedTarget)){
       catGroup.classList.remove('drag-over-cat');
     }
@@ -1034,7 +1047,6 @@ function setupCategoryGroupDrop(catGroup, catKey){
     if(!dragData || !isAdmin) return;
 
     if(dragData.type === 'channel'){
-      // Append channel to this category
       await moveChannel(dragData.id, dragData.catId, catKey, null, false);
     }
     clearDragStyles();
@@ -1042,103 +1054,146 @@ function setupCategoryGroupDrop(catGroup, catKey){
 }
 
 async function fetchData(){
-if(isPolling)return;isPolling=true;
-try{
-const structRes=await fetch(`${FIREBASE_URL}/structure.json?auth=${FIREBASE_TOKEN}`);
-const structure=await structRes.json()||{categories:{}};
-channelsContainer.innerHTML='';
-let channelExists=false;
-const sortedCategories=Object.keys(structure.categories||{}).sort((a,b)=>(structure.categories[a].order||0)-(structure.categories[b].order||0));
-sortedCategories.forEach(catKey=>{
-const cat=structure.categories[catKey];
-const catDiv=document.createElement('div');catDiv.className='category-group';
+  if(isPolling || isDragging) return; // не перерисовываем во время drag
+  isPolling = true;
+  try{
+    const structRes = await fetch(`${FIREBASE_URL}/structure.json?auth=${FIREBASE_TOKEN}`);
+    const structure = await structRes.json() || {categories:{}};
+    channelsContainer.innerHTML = '';
+    let channelExists = false;
+    const sortedCategories = Object.keys(structure.categories || {}).sort((a,b)=>(structure.categories[a].order||0)-(structure.categories[b].order||0));
+    
+    sortedCategories.forEach(catKey=>{
+      const cat = structure.categories[catKey];
+      const catDiv = document.createElement('div');
+      catDiv.className = 'category-group';
 
-const catHeader=document.createElement('div');catHeader.className='category-header';
-catHeader.innerHTML=`<span>${escapeHtml(cat.name)}</span>`;
-if(isAdmin){
-catHeader.oncontextmenu=e=>{e.preventDefault();e.stopPropagation();contextTarget={type:'category',id:catKey,name:cat.name};showContextMenu(e.clientX,e.clientY,['create-channel','create-forum','edit','delete']);};
-setupDragEvents(catHeader,'category',catKey,null);
-}
-catDiv.appendChild(catHeader);
+      const catHeader = document.createElement('div');
+      catHeader.className = 'category-header';
+      catHeader.innerHTML = `<span>${escapeHtml(cat.name)}</span>`;
+      if(isAdmin){
+        catHeader.oncontextmenu = e=>{
+          e.preventDefault(); e.stopPropagation();
+          contextTarget = {type:'category', id:catKey, name:cat.name};
+          showContextMenu(e.clientX, e.clientY, ['create-channel','create-forum','edit','delete']);
+        };
+        setupDragEvents(catHeader, 'category', catKey, null);
+      }
+      catDiv.appendChild(catHeader);
 
-const chansContainer=document.createElement('div');chansContainer.className='category-channels';
-if(isAdmin){
-// Allow dropping channels into the list area of the category
-setupDragEvents(chansContainer,'channellist',catKey,null);
-}
+      const chansContainer = document.createElement('div');
+      chansContainer.className = 'category-channels';
+      if(isAdmin){
+        setupDragEvents(chansContainer, 'channellist', catKey, null);
+      }
 
-if(cat.channels){
-const sortedChans=Object.keys(cat.channels).sort((a,b)=>(cat.channels[a].order||0)-(cat.channels[b].order||0));
-sortedChans.forEach(chKey=>{
-const ch=cat.channels[chKey];
-if(chKey===currentChannel){channelExists=true;currentChannelCatKey=catKey;currentChannelType=ch.type||'text';channelCooldown=ch.cooldown||0}
-const symbol=ch.type==='forum'?'F':'#';
-const chDiv=document.createElement('div');chDiv.className=`channel-item ${currentChannel===chKey?'active':''}`;
-chDiv.innerHTML=`<span><span class="symbol">${symbol}</span>${escapeHtml(ch.name)}</span>${isAdmin?`<button style="background:none;border:none;color:#444;cursor:pointer;font-size:11px" title="Settings" onclick="event.stopPropagation();openChannelSettingsModal('${catKey}','${chKey}')">⚙</button>`:''}`;
-chDiv.onclick=async()=>{
-const canRead=await checkPermission(chKey,'read');
-if(!canRead){alert("ACCESS DENIED — NO VIEW PERMISSION");return}
-currentChannel=chKey;currentChannelCatKey=catKey;currentChannelType=ch.type||'text';
-channelCooldown=ch.cooldown||0;
-activeForumPostId=null;replyToMsg=null;editingMsgId=null;
-displayedCount=MSG_PAGE_SIZE;allMessagesCache={};
-activeChannelTitle.textContent=`${symbol} ${ch.name}`;
-channelTopic.textContent=ch.topic||'';
-const inp=document.getElementById('message-input');
-if(inp)inp.placeholder=`Message ${symbol}${ch.name}`;
-lastMessagesHash="";fetchData();
-};
-if(isAdmin){
-chDiv.oncontextmenu=e=>{e.preventDefault();e.stopPropagation();contextTarget={type:'channel',id:chKey,catId:catKey,name:ch.name};showContextMenu(e.clientX,e.clientY,['edit','permissions','delete']);};
-setupDragEvents(chDiv,'channel',chKey,catKey);
-}
-chansContainer.appendChild(chDiv);
-});
-}
-catDiv.appendChild(chansContainer);
+      if(cat.channels){
+        const sortedChans = Object.keys(cat.channels).sort((a,b)=>(cat.channels[a].order||0)-(cat.channels[b].order||0));
+        sortedChans.forEach(chKey=>{
+          const ch = cat.channels[chKey];
+          if(chKey === currentChannel){
+            channelExists = true;
+            currentChannelCatKey = catKey;
+            currentChannelType = ch.type || 'text';
+            channelCooldown = ch.cooldown || 0;
+          }
+          const symbol = ch.type === 'forum' ? 'F' : '#';
+          const chDiv = document.createElement('div');
+          chDiv.className = `channel-item ${currentChannel===chKey?'active':''}`;
+          chDiv.innerHTML = `<span><span class="symbol">${symbol}</span>${escapeHtml(ch.name)}</span>${isAdmin?`<button style="background:none;border:none;color:#444;cursor:pointer;font-size:11px" title="Settings" onclick="event.stopPropagation();openChannelSettingsModal('${catKey}','${chKey}')">⚙</button>`:''}`;
+          
+          chDiv.onclick = async ()=>{
+            const canRead = await checkPermission(chKey,'read');
+            if(!canRead){alert("ACCESS DENIED — NO VIEW PERMISSION");return}
+            currentChannel = chKey;
+            currentChannelCatKey = catKey;
+            currentChannelType = ch.type || 'text';
+            channelCooldown = ch.cooldown || 0;
+            activeForumPostId = null;
+            replyToMsg = null;
+            editingMsgId = null;
+            displayedCount = MSG_PAGE_SIZE;
+            allMessagesCache = {};
+            activeChannelTitle.textContent = `${symbol} ${ch.name}`;
+            channelTopic.textContent = ch.topic || '';
+            const inp = document.getElementById('message-input');
+            if(inp) inp.placeholder = `Message ${symbol}${ch.name}`;
+            lastMessagesHash = "";
+            fetchData();
+          };
 
-if(isAdmin){
-setupCategoryGroupDrop(catDiv, catKey);
-}
+          if(isAdmin){
+            chDiv.oncontextmenu = e=>{
+              e.preventDefault(); e.stopPropagation();
+              contextTarget = {type:'channel', id:chKey, catId:catKey, name:ch.name};
+              showContextMenu(e.clientX, e.clientY, ['edit','permissions','delete']);
+            };
+            setupDragEvents(chDiv, 'channel', chKey, catKey);
+          }
+          chansContainer.appendChild(chDiv);
+        });
+      }
+      catDiv.appendChild(chansContainer);
 
-channelsContainer.appendChild(catDiv);
-});
-if(!channelExists&&sortedCategories.length>0)currentChannel="general";
-const canReadActive=await checkPermission(currentChannel,'read');
-if(!canReadActive){
-mainDisplayArea.innerHTML=`<div class="chat-header"><span># restricted</span></div><div class="chat-messages"><div class="access-denied">ACCESS DENIED<br>NO VIEW PERMISSION</div></div>`;
-}else{
-if(currentChannelType==='forum')renderForumView();
-else renderTextView();
-}
-const userRes=await fetch(`${FIREBASE_URL}/users.json?auth=${FIREBASE_TOKEN}`);
-const users=await userRes.json()||{};
-const rolesRes=await fetch(`${FIREBASE_URL}/roles.json?auth=${FIREBASE_TOKEN}`);
-const roles=await rolesRes.json()||{member:{name:"Member",color:"#aaaaaa",hoist:false}};
-sidebarMembersContainer.innerHTML='';
-const grouped={};Object.keys(roles).forEach(rKey=>grouped[rKey]=[]);if(!grouped.member)grouped.member=[];
-Object.keys(users).forEach(uname=>{const uData=users[uname];const uRole=uData.role&&roles[uData.role]?uData.role:'member';if(!grouped[uRole])grouped[uRole]=[];grouped[uRole].push({name:uname,...uData})});
-const sortedRoleKeys=Object.keys(roles).sort((a,b)=>{
-const ha=roles[a].hoist?0:1;const hb=roles[b].hoist?0:1;
-return ha-hb||(roles[a].name||'').localeCompare(roles[b].name||'');
-});
-sortedRoleKeys.forEach(rKey=>{
-const rList=grouped[rKey]||[];if(rList.length===0)return;
-const r=roles[rKey];
-if(!r.hoist&&rKey!=='member'&&rKey!=='admin')return;
-const sec=document.createElement('div');sec.className='members-section';
-const rColor=r.color||'#aaaaaa';
-sec.innerHTML=`<h3 style="color:${rColor}">${(r.name||rKey).toUpperCase()} — ${rList.length}</h3>`;
-rList.forEach(user=>{
-const status=user.status||'offline';
-const mDiv=document.createElement('div');mDiv.className='member-item';
-const avSrc=getStableAvatar(user.name,user.avatar);
-mDiv.innerHTML=`<div style="position:relative"><img class="member-avatar-sm" src="${avSrc}" alt="" loading="eager"><div class="status-dot status-${status}"></div></div><span style="color:${rColor}">${escapeHtml(user.name)}</span>`;
-mDiv.onclick=()=>openMemberProfileModal(user.name,user);sec.appendChild(mDiv);
-});
-sidebarMembersContainer.appendChild(sec);
-});
-}catch(err){console.error(err)}finally{isPolling=false}
+      if(isAdmin){
+        setupCategoryGroupDrop(catDiv, catKey);
+      }
+
+      channelsContainer.appendChild(catDiv);
+    });
+
+    if(!channelExists && sortedCategories.length > 0) currentChannel = "general";
+    
+    const canReadActive = await checkPermission(currentChannel,'read');
+    if(!canReadActive){
+      mainDisplayArea.innerHTML = `<div class="chat-header"><span># restricted</span></div><div class="chat-messages"><div class="access-denied">ACCESS DENIED<br>NO VIEW PERMISSION</div></div>`;
+    }else{
+      if(currentChannelType==='forum') renderForumView();
+      else renderTextView();
+    }
+
+    // Members
+    const userRes = await fetch(`${FIREBASE_URL}/users.json?auth=${FIREBASE_TOKEN}`);
+    const users = await userRes.json() || {};
+    const rolesRes = await fetch(`${FIREBASE_URL}/roles.json?auth=${FIREBASE_TOKEN}`);
+    const roles = await rolesRes.json() || {member:{name:"Member",color:"#aaaaaa",hoist:false}};
+    sidebarMembersContainer.innerHTML = '';
+    const grouped = {};
+    Object.keys(roles).forEach(rKey => grouped[rKey] = []);
+    if(!grouped.member) grouped.member = [];
+    Object.keys(users).forEach(uname=>{
+      const uData = users[uname];
+      const uRole = uData.role && roles[uData.role] ? uData.role : 'member';
+      if(!grouped[uRole]) grouped[uRole] = [];
+      grouped[uRole].push({name:uname, ...uData});
+    });
+    const sortedRoleKeys = Object.keys(roles).sort((a,b)=>{
+      const ha = roles[a].hoist ? 0 : 1;
+      const hb = roles[b].hoist ? 0 : 1;
+      return ha - hb || (roles[a].name||'').localeCompare(roles[b].name||'');
+    });
+    sortedRoleKeys.forEach(rKey=>{
+      const rList = grouped[rKey] || [];
+      if(rList.length === 0) return;
+      const r = roles[rKey];
+      if(!r.hoist && rKey !== 'member' && rKey !== 'admin') return;
+      const sec = document.createElement('div');
+      sec.className = 'members-section';
+      const rColor = r.color || '#aaaaaa';
+      sec.innerHTML = `<h3 style="color:${rColor}">${(r.name||rKey).toUpperCase()} — ${rList.length}</h3>`;
+      rList.forEach(user=>{
+        const status = user.status || 'offline';
+        const mDiv = document.createElement('div');
+        mDiv.className = 'member-item';
+        const avSrc = getStableAvatar(user.name, user.avatar);
+        mDiv.innerHTML = `<div style="position:relative"><img class="member-avatar-sm" src="${avSrc}" alt="" loading="eager"><div class="status-dot status-${status}"></div></div><span style="color:${rColor}">${escapeHtml(user.name)}</span>`;
+        mDiv.onclick = () => openMemberProfileModal(user.name, user);
+        sec.appendChild(mDiv);
+      });
+      sidebarMembersContainer.appendChild(sec);
+    });
+  }catch(err){console.error(err)}
+  finally{isPolling=false}
 }
 
 async function renderTextView(){
