@@ -26,9 +26,13 @@ body{background:#0a0a0a;color:#e0e0e0;height:100vh;overflow:hidden}
 .server-header{padding:14px 16px;border-bottom:1px solid #1f1f1f;font-weight:600;letter-spacing:1px;display:flex;justify-content:space-between;align-items:center;cursor:default;font-size:14px;color:#fff}
 .channels-list{padding:10px 8px;flex-grow:1;overflow-y:auto}
 .category-group{margin-bottom:12px}
-.category-header{font-size:10px;letter-spacing:1.5px;color:#555;padding:6px 10px;display:flex;justify-content:space-between;align-items:center;text-transform:uppercase;cursor:default;font-weight:600}
-.category-channels{padding-left:2px;display:flex;flex-direction:column;gap:2px}
+.category-header{font-size:10px;letter-spacing:1.5px;color:#555;padding:6px 10px;display:flex;justify-content:space-between;align-items:center;text-transform:uppercase;cursor:default;font-weight:600;border-radius:6px;transition:background .12s,border-color .12s;border:1px solid transparent}
+.category-header.draggable-item{cursor:grab}
+.category-header.draggable-item:active{cursor:grabbing}
+.category-channels{padding-left:2px;display:flex;flex-direction:column;gap:2px;min-height:8px}
 .channel-item{padding:8px 12px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:6px;border-radius:8px;color:#888;transition:all .12s;border:1px solid transparent}
+.channel-item.draggable-item{cursor:grab}
+.channel-item.draggable-item:active{cursor:grabbing}
 .channel-item:hover{background:#161616;color:#ddd;border-color:#2a2a2a}
 .channel-item.active{background:#1a1a1a;color:#fff;border-color:#3a3a3a}
 .channel-item .symbol{margin-right:8px;opacity:.6;font-size:12px;font-weight:700}
@@ -124,6 +128,12 @@ body{background:#0a0a0a;color:#e0e0e0;height:100vh;overflow:hidden}
 .settings-section{margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #1f1f1f}
 .settings-section:last-child{border-bottom:none}
 .settings-section h4{font-size:12px;letter-spacing:1px;color:#888;margin-bottom:12px;text-transform:uppercase}
+.dragging{opacity:0.4;transform:scale(0.98)}
+.drag-over{background:#1a1a1a!important;border-color:#555!important}
+.category-header.drag-over{background:#1f1f1f;border-color:#555}
+.channel-item.drag-over{background:#222;border-color:#666}
+.drop-indicator{height:3px;background:#fff;margin:2px 8px;border-radius:2px;opacity:0;transition:opacity .1s}
+.drop-indicator.active{opacity:1}
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:3px}
@@ -196,6 +206,7 @@ const MSG_PAGE_SIZE=20;
 let isRegistering=false,currentUser=localStorage.getItem('chat_user')||null,userIp="unknown",currentChannel="general",currentChannelCatKey="general_cat",currentChannelType="text",isAdmin=false,contextTarget=null,lastMessagesHash="",isPolling=false;
 let cachedAvatar="",cachedBio="",lastMessageTime=0,activeForumPostId=null,userStatus="online",replyToMsg=null,editingMsgId=null,channelCooldown=0,cooldownTimer=null,avatarCache={};
 let allMessagesCache={},displayedCount=MSG_PAGE_SIZE,isLoadingMore=false;
+let dragData=null;
 const userIpPromise=fetch('https://api.ipify.org?format=json').then(r=>r.json()).then(d=>{userIp=d.ip||"unknown";return userIp}).catch(()=>{userIp="unknown";return"unknown"});
 const authScreen=document.getElementById('auth-screen'),appScreen=document.getElementById('app-screen'),authTitle=document.getElementById('auth-title'),authSubmitBtn=document.getElementById('auth-submit-btn'),switchAuthMode=document.getElementById('switch-auth-mode'),authForm=document.getElementById('auth-form'),usernameInput=document.getElementById('username-input'),passwordInput=document.getElementById('password-input'),currentUsernameDisplay=document.getElementById('current-username-display'),currentUserDesc=document.getElementById('current-user-desc'),myAvatarDisplay=document.getElementById('my-avatar-display'),userProfileBar=document.getElementById('user-profile-bar'),logoutBtn=document.getElementById('logout-btn'),serverGearBtn=document.getElementById('server-gear-btn'),channelGearBtn=document.getElementById('channel-gear-btn'),serverTitleDisplay=document.getElementById('server-title-display'),chatForm=document.getElementById('chat-form'),messageInput=document.getElementById('message-input'),chatMessages=document.getElementById('chat-messages'),channelsContainer=document.getElementById('channels-container'),sidebarChannelsPanel=document.getElementById('sidebar-channels-panel'),sidebarMembersContainer=document.getElementById('sidebar-members-container'),activeChannelTitle=document.getElementById('active-channel-title'),mediaFileInput=document.getElementById('media-file-input'),fileUploadLabel=document.querySelector('.file-upload-label'),contextMenu=document.getElementById('context-menu'),chatInputContainer=document.getElementById('chat-input-container'),mainDisplayArea=document.getElementById('main-display-area'),channelTopic=document.getElementById('channel-topic'),sendBtn=document.getElementById('send-btn'),cooldownBar=document.getElementById('cooldown-bar'),cooldownFill=document.getElementById('cooldown-fill'),cooldownText=document.getElementById('cooldown-text');
 
@@ -850,6 +861,112 @@ if(contextTarget&&contextTarget.type==='channel')openChannelSettingsModal(contex
 
 function startPolling(){fetchData();setInterval(fetchData,3500)}
 
+async function reorderCategories(dragCatKey,targetCatKey,insertBefore){
+try{
+const structRes=await fetch(`${FIREBASE_URL}/structure.json?auth=${FIREBASE_TOKEN}`);
+const structure=await structRes.json()||{categories:{}};
+const cats=structure.categories||{};
+const sorted=Object.keys(cats).sort((a,b)=>(cats[a].order||0)-(cats[b].order||0));
+const fromIdx=sorted.indexOf(dragCatKey);
+const toIdx=sorted.indexOf(targetCatKey);
+if(fromIdx===-1||toIdx===-1||fromIdx===toIdx)return;
+sorted.splice(fromIdx,1);
+const newToIdx=sorted.indexOf(targetCatKey);
+const insertIdx=insertBefore?newToIdx:newToIdx+1;
+sorted.splice(insertIdx,0,dragCatKey);
+const updates={};
+sorted.forEach((key,i)=>{updates[`categories/${key}/order`]=i;});
+await fetch(`${FIREBASE_URL}/structure.json?auth=${FIREBASE_TOKEN}`,{method:'PATCH',body:JSON.stringify(updates)});
+fetchData();
+}catch(e){console.error(e);alert("Failed to reorder categories.");}
+}
+
+async function moveChannel(dragChKey,fromCatKey,toCatKey,targetChKey,insertBefore){
+try{
+const structRes=await fetch(`${FIREBASE_URL}/structure.json?auth=${FIREBASE_TOKEN}`);
+const structure=await structRes.json()||{categories:{}};
+const fromCat=structure.categories[fromCatKey];
+const toCat=structure.categories[toCatKey];
+if(!fromCat||!toCat||!fromCat.channels||!fromCat.channels[dragChKey])return;
+const channelData=fromCat.channels[dragChKey];
+const fromChannels=Object.keys(fromCat.channels).filter(k=>k!==dragChKey).sort((a,b)=>(fromCat.channels[a].order||0)-(fromCat.channels[b].order||0));
+let toChannels=Object.keys(toCat.channels||{}).filter(k=>k!==dragChKey).sort((a,b)=>(toCat.channels[a].order||0)-(toCat.channels[b].order||0));
+if(targetChKey&&toChannels.includes(targetChKey)){
+const tIdx=toChannels.indexOf(targetChKey);
+toChannels.splice(insertBefore?tIdx:tIdx+1,0,dragChKey);
+}else{
+toChannels.push(dragChKey);
+}
+const updates={};
+fromChannels.forEach((k,i)=>{updates[`categories/${fromCatKey}/channels/${k}/order`]=i;});
+if(fromCatKey!==toCatKey){
+updates[`categories/${fromCatKey}/channels/${dragChKey}`]=null;
+updates[`categories/${toCatKey}/channels/${dragChKey}`]=channelData;
+}
+toChannels.forEach((k,i)=>{updates[`categories/${toCatKey}/channels/${k}/order`]=i;});
+await fetch(`${FIREBASE_URL}/structure.json?auth=${FIREBASE_TOKEN}`,{method:'PATCH',body:JSON.stringify(updates)});
+if(currentChannel===dragChKey)currentChannelCatKey=toCatKey;
+fetchData();
+}catch(e){console.error(e);alert("Failed to move channel.");}
+}
+
+function clearDragStyles(){
+document.querySelectorAll('.dragging,.drag-over').forEach(el=>{
+el.classList.remove('dragging','drag-over');
+});
+dragData=null;
+}
+
+function setupDragEvents(el,type,id,catId){
+if(!isAdmin)return;
+el.classList.add('draggable-item');
+el.draggable=true;
+el.addEventListener('dragstart',e=>{
+e.stopPropagation();
+dragData={type,id,catId};
+el.classList.add('dragging');
+e.dataTransfer.effectAllowed='move';
+e.dataTransfer.setData('text/plain',JSON.stringify(dragData));
+});
+el.addEventListener('dragend',()=>{
+clearDragStyles();
+});
+el.addEventListener('dragover',e=>{
+e.preventDefault();
+e.stopPropagation();
+if(!dragData)return;
+if(type==='category'&&dragData.type==='category'&&dragData.id!==id){
+el.classList.add('drag-over');
+}else if(type==='channel'&&dragData.type==='channel'){
+el.classList.add('drag-over');
+}else if(type==='category'&&dragData.type==='channel'){
+el.classList.add('drag-over');
+}
+});
+el.addEventListener('dragleave',e=>{
+el.classList.remove('drag-over');
+});
+el.addEventListener('drop',async e=>{
+e.preventDefault();
+e.stopPropagation();
+el.classList.remove('drag-over');
+if(!dragData||!isAdmin)return;
+const rect=el.getBoundingClientRect();
+const midY=rect.top+rect.height/2;
+const insertBefore=e.clientY<midY;
+if(dragData.type==='category'&&type==='category'&&dragData.id!==id){
+await reorderCategories(dragData.id,id,insertBefore);
+}else if(dragData.type==='channel'){
+if(type==='channel'){
+await moveChannel(dragData.id,dragData.catId,catId,id,insertBefore);
+}else if(type==='category'){
+await moveChannel(dragData.id,dragData.catId,id,null,false);
+}
+}
+clearDragStyles();
+});
+}
+
 async function fetchData(){
 if(isPolling)return;isPolling=true;
 try{
@@ -865,6 +982,7 @@ const catHeader=document.createElement('div');catHeader.className='category-head
 catHeader.innerHTML=`<span>${escapeHtml(cat.name)}</span>`;
 if(isAdmin){
 catHeader.oncontextmenu=e=>{e.preventDefault();e.stopPropagation();contextTarget={type:'category',id:catKey,name:cat.name};showContextMenu(e.clientX,e.clientY,['create-channel','create-forum','edit','delete']);};
+setupDragEvents(catHeader,'category',catKey,null);
 }
 catDiv.appendChild(catHeader);
 const chansContainer=document.createElement('div');chansContainer.className='category-channels';
@@ -891,6 +1009,7 @@ lastMessagesHash="";fetchData();
 };
 if(isAdmin){
 chDiv.oncontextmenu=e=>{e.preventDefault();e.stopPropagation();contextTarget={type:'channel',id:chKey,catId:catKey,name:ch.name};showContextMenu(e.clientX,e.clientY,['edit','permissions','delete']);};
+setupDragEvents(chDiv,'channel',chKey,catKey);
 }
 chansContainer.appendChild(chDiv);
 });
