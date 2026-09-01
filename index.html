@@ -986,6 +986,9 @@ setupDragEvents(catHeader,'category',catKey,null);
 }
 catDiv.appendChild(catHeader);
 const chansContainer=document.createElement('div');chansContainer.className='category-channels';
+if(isAdmin){
+setupDragEvents(chansContainer,'category',catKey,null);
+}
 if(cat.channels){
 const sortedChans=Object.keys(cat.channels).sort((a,b)=>(cat.channels[a].order||0)-(cat.channels[b].order||0));
 sortedChans.forEach(chKey=>{
