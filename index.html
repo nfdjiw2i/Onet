@@ -25,11 +25,13 @@ body{background:#0a0a0a;color:#e0e0e0;height:100vh;overflow:hidden}
 .sidebar-channels{width:250px;border-right:1px solid #1f1f1f;display:flex;flex-direction:column;background:#0d0d0d;flex-shrink:0}
 .server-header{padding:14px 16px;border-bottom:1px solid #1f1f1f;font-weight:600;letter-spacing:1px;display:flex;justify-content:space-between;align-items:center;cursor:default;font-size:14px;color:#fff}
 .channels-list{padding:10px 8px;flex-grow:1;overflow-y:auto}
-.category-group{margin-bottom:12px}
+.category-group{margin-bottom:12px;border-radius:8px;transition:background .12s}
+.category-group.drag-over-cat{background:#161616;outline:1px dashed #555}
 .category-header{font-size:10px;letter-spacing:1.5px;color:#555;padding:6px 10px;display:flex;justify-content:space-between;align-items:center;text-transform:uppercase;cursor:default;font-weight:600;border-radius:6px;transition:background .12s,border-color .12s;border:1px solid transparent}
 .category-header.draggable-item{cursor:grab}
 .category-header.draggable-item:active{cursor:grabbing}
-.category-channels{padding-left:2px;display:flex;flex-direction:column;gap:2px;min-height:12px}
+.category-channels{padding-left:2px;display:flex;flex-direction:column;gap:2px;min-height:16px;padding-bottom:4px;border-radius:6px;transition:background .12s}
+.category-channels.drag-over-list{background:#1a1a1a;outline:1px dashed #444}
 .channel-item{padding:8px 12px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:6px;border-radius:8px;color:#888;transition:all .12s;border:1px solid transparent}
 .channel-item.draggable-item{cursor:grab}
 .channel-item.draggable-item:active{cursor:grabbing}
@@ -132,8 +134,6 @@ body{background:#0a0a0a;color:#e0e0e0;height:100vh;overflow:hidden}
 .drag-over{background:#1a1a1a!important;border-color:#555!important}
 .category-header.drag-over{background:#1f1f1f;border-color:#555}
 .channel-item.drag-over{background:#222;border-color:#666}
-.drop-indicator{height:3px;background:#fff;margin:2px 8px;border-radius:2px;opacity:0;transition:opacity .1s}
-.drop-indicator.active{opacity:1}
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:3px}
@@ -888,85 +888,157 @@ const structure=await structRes.json()||{categories:{}};
 const fromCat=structure.categories[fromCatKey];
 const toCat=structure.categories[toCatKey];
 if(!fromCat||!toCat||!fromCat.channels||!fromCat.channels[dragChKey])return;
-const channelData=fromCat.channels[dragChKey];
-const fromChannels=Object.keys(fromCat.channels).filter(k=>k!==dragChKey).sort((a,b)=>(fromCat.channels[a].order||0)-(fromCat.channels[b].order||0));
-let toChannels=Object.keys(toCat.channels||{}).filter(k=>k!==dragChKey).sort((a,b)=>(toCat.channels[a].order||0)-(toCat.channels[b].order||0));
-if(targetChKey&&toChannels.includes(targetChKey)){
-const tIdx=toChannels.indexOf(targetChKey);
-toChannels.splice(insertBefore?tIdx:tIdx+1,0,dragChKey);
+
+const channelData={...fromCat.channels[dragChKey]};
+
+// Build ordered lists without the dragged channel
+let fromChannels=Object.keys(fromCat.channels).filter(k=>k!==dragChKey)
+  .sort((a,b)=>(fromCat.channels[a].order||0)-(fromCat.channels[b].order||0));
+
+let toChannels=Object.keys(toCat.channels||{}).filter(k=>k!==dragChKey)
+  .sort((a,b)=>(toCat.channels[a].order||0)-(toCat.channels[b].order||0));
+
+// Insert into target list
+if(targetChKey && toChannels.includes(targetChKey)){
+  const tIdx=toChannels.indexOf(targetChKey);
+  toChannels.splice(insertBefore ? tIdx : tIdx+1, 0, dragChKey);
 }else{
-toChannels.push(dragChKey);
+  toChannels.push(dragChKey);
 }
+
 const updates={};
-fromChannels.forEach((k,i)=>{updates[`categories/${fromCatKey}/channels/${k}/order`]=i;});
+
+// Update orders in source category
+fromChannels.forEach((k,i)=>{
+  updates[`categories/${fromCatKey}/channels/${k}/order`]=i;
+});
+
+// Move the channel object if categories differ
 if(fromCatKey!==toCatKey){
-updates[`categories/${fromCatKey}/channels/${dragChKey}`]=null;
-updates[`categories/${toCatKey}/channels/${dragChKey}`]=channelData;
+  updates[`categories/${fromCatKey}/channels/${dragChKey}`]=null;
+  // Ensure order is set correctly in the new place
+  channelData.order = toChannels.indexOf(dragChKey);
+  updates[`categories/${toCatKey}/channels/${dragChKey}`]=channelData;
 }
-toChannels.forEach((k,i)=>{updates[`categories/${toCatKey}/channels/${k}/order`]=i;});
-await fetch(`${FIREBASE_URL}/structure.json?auth=${FIREBASE_TOKEN}`,{method:'PATCH',body:JSON.stringify(updates)});
-if(currentChannel===dragChKey)currentChannelCatKey=toCatKey;
+
+// Update orders in target category
+toChannels.forEach((k,i)=>{
+  updates[`categories/${toCatKey}/channels/${k}/order`]=i;
+});
+
+await fetch(`${FIREBASE_URL}/structure.json?auth=${FIREBASE_TOKEN}`,{
+  method:'PATCH',
+  body:JSON.stringify(updates)
+});
+
+if(currentChannel===dragChKey) currentChannelCatKey=toCatKey;
 fetchData();
-}catch(e){console.error(e);alert("Failed to move channel.");}
+}catch(e){
+  console.error(e);
+  alert("Failed to move channel.");
+}
 }
 
 function clearDragStyles(){
-document.querySelectorAll('.dragging,.drag-over').forEach(el=>{
-el.classList.remove('dragging','drag-over');
-});
-dragData=null;
+  document.querySelectorAll('.dragging,.drag-over,.drag-over-cat,.drag-over-list').forEach(el=>{
+    el.classList.remove('dragging','drag-over','drag-over-cat','drag-over-list');
+  });
+  dragData=null;
 }
 
-function setupDragEvents(el,type,id,catId){
-if(!isAdmin)return;
-el.classList.add('draggable-item');
-el.draggable=true;
-el.addEventListener('dragstart',e=>{
-e.stopPropagation();
-dragData={type,id,catId};
-el.classList.add('dragging');
-e.dataTransfer.effectAllowed='move';
-e.dataTransfer.setData('text/plain',JSON.stringify(dragData));
-});
-el.addEventListener('dragend',()=>{
-clearDragStyles();
-});
-el.addEventListener('dragover',e=>{
-e.preventDefault();
-e.stopPropagation();
-if(!dragData)return;
-if(type==='category'&&dragData.type==='category'&&dragData.id!==id){
-el.classList.add('drag-over');
-}else if(type==='channel'&&dragData.type==='channel'){
-el.classList.add('drag-over');
-}else if(type==='category'&&dragData.type==='channel'){
-el.classList.add('drag-over');
-}
-});
-el.addEventListener('dragleave',e=>{
-el.classList.remove('drag-over');
-});
-el.addEventListener('drop',async e=>{
-e.preventDefault();
-e.stopPropagation();
-el.classList.remove('drag-over');
-if(!dragData||!isAdmin)return;
+function setupDragEvents(el, type, id, catId){
+  if(!isAdmin) return;
+  el.classList.add('draggable-item');
+  el.draggable = true;
 
-if(dragData.type==='category'&&type==='category'&&dragData.id!==id){
-const rect=el.getBoundingClientRect();
-const insertBefore=e.clientY<(rect.top+rect.height/2);
-await reorderCategories(dragData.id,id,insertBefore);
-}else if(dragData.type==='channel'){
-if(type==='channel'){
-const rect=el.getBoundingClientRect();
-const insertBefore=e.clientY<(rect.top+rect.height/2);
-await moveChannel(dragData.id,dragData.catId,catId,id,insertBefore);
-}else if(type==='category'){
-await moveChannel(dragData.id,dragData.catId,id,null,false);
+  el.addEventListener('dragstart', e=>{
+    e.stopPropagation();
+    dragData = {type, id, catId};
+    el.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', JSON.stringify(dragData));
+  });
+
+  el.addEventListener('dragend', ()=>{
+    clearDragStyles();
+  });
+
+  el.addEventListener('dragover', e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    if(!dragData) return;
+
+    if(type === 'category' && dragData.type === 'category' && dragData.id !== id){
+      el.classList.add('drag-over');
+    }else if(type === 'channel' && dragData.type === 'channel'){
+      el.classList.add('drag-over');
+    }else if((type === 'category' || type === 'channellist') && dragData.type === 'channel'){
+      if(type === 'category') el.classList.add('drag-over');
+      if(type === 'channellist') el.classList.add('drag-over-list');
+    }
+  });
+
+  el.addEventListener('dragleave', e=>{
+    el.classList.remove('drag-over','drag-over-list');
+  });
+
+  el.addEventListener('drop', async e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    el.classList.remove('drag-over','drag-over-list');
+    if(!dragData || !isAdmin) return;
+
+    if(dragData.type === 'category' && type === 'category' && dragData.id !== id){
+      const rect = el.getBoundingClientRect();
+      const insertBefore = e.clientY < (rect.top + rect.height / 2);
+      await reorderCategories(dragData.id, id, insertBefore);
+    }
+    else if(dragData.type === 'channel'){
+      if(type === 'channel'){
+        // Dropping onto another channel (reorder or move between categories)
+        const rect = el.getBoundingClientRect();
+        const insertBefore = e.clientY < (rect.top + rect.height / 2);
+        await moveChannel(dragData.id, dragData.catId, catId, id, insertBefore);
+      }
+      else if(type === 'category' || type === 'channellist'){
+        // Dropping onto category header or into the channels list area → move to this category (append)
+        await moveChannel(dragData.id, dragData.catId, id, null, false);
+      }
+    }
+    clearDragStyles();
+  });
 }
-}
-clearDragStyles();
-});
+
+// Also allow dropping onto the whole category group
+function setupCategoryGroupDrop(catGroup, catKey){
+  if(!isAdmin) return;
+
+  catGroup.addEventListener('dragover', e=>{
+    e.preventDefault();
+    if(dragData && dragData.type === 'channel'){
+      catGroup.classList.add('drag-over-cat');
+    }
+  });
+
+  catGroup.addEventListener('dragleave', e=>{
+    // Only remove if we really left the group
+    if(!catGroup.contains(e.relatedTarget)){
+      catGroup.classList.remove('drag-over-cat');
+    }
+  });
+
+  catGroup.addEventListener('drop', async e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    catGroup.classList.remove('drag-over-cat');
+    if(!dragData || !isAdmin) return;
+
+    if(dragData.type === 'channel'){
+      // Append channel to this category
+      await moveChannel(dragData.id, dragData.catId, catKey, null, false);
+    }
+    clearDragStyles();
+  });
 }
 
 async function fetchData(){
@@ -980,6 +1052,7 @@ const sortedCategories=Object.keys(structure.categories||{}).sort((a,b)=>(struct
 sortedCategories.forEach(catKey=>{
 const cat=structure.categories[catKey];
 const catDiv=document.createElement('div');catDiv.className='category-group';
+
 const catHeader=document.createElement('div');catHeader.className='category-header';
 catHeader.innerHTML=`<span>${escapeHtml(cat.name)}</span>`;
 if(isAdmin){
@@ -987,10 +1060,13 @@ catHeader.oncontextmenu=e=>{e.preventDefault();e.stopPropagation();contextTarget
 setupDragEvents(catHeader,'category',catKey,null);
 }
 catDiv.appendChild(catHeader);
+
 const chansContainer=document.createElement('div');chansContainer.className='category-channels';
 if(isAdmin){
-setupDragEvents(chansContainer,'category',catKey,null);
+// Allow dropping channels into the list area of the category
+setupDragEvents(chansContainer,'channellist',catKey,null);
 }
+
 if(cat.channels){
 const sortedChans=Object.keys(cat.channels).sort((a,b)=>(cat.channels[a].order||0)-(cat.channels[b].order||0));
 sortedChans.forEach(chKey=>{
@@ -1019,7 +1095,13 @@ setupDragEvents(chDiv,'channel',chKey,catKey);
 chansContainer.appendChild(chDiv);
 });
 }
-catDiv.appendChild(chansContainer);channelsContainer.appendChild(catDiv);
+catDiv.appendChild(chansContainer);
+
+if(isAdmin){
+setupCategoryGroupDrop(catDiv, catKey);
+}
+
+channelsContainer.appendChild(catDiv);
 });
 if(!channelExists&&sortedCategories.length>0)currentChannel="general";
 const canReadActive=await checkPermission(currentChannel,'read');
@@ -1174,12 +1256,14 @@ document.getElementById('back-to-forum-list').onclick=()=>{activeForumPostId=nul
 document.getElementById('channel-gear-btn').onclick=e=>{e.stopPropagation();if(!isAdmin){alert("ACCESS DENIED — ADMIN ONLY");return}openChannelSettingsModal(currentChannelCatKey,currentChannel);};
 document.querySelectorAll('[data-delc]').forEach(btn=>{
 btn.onclick=async()=>{
-if(!confirm("Delete comment?"))return;
+if(!confirm("Delete this comment?"))return;
 await fetch(`${FIREBASE_URL}/forum_comments/${currentChannel}/${activeForumPostId}/${btn.dataset.delc}.json?auth=${FIREBASE_TOKEN}`,{method:'DELETE'});
 renderForumView();
 };
 });
 bindChatForm();
+const msgContainer=document.getElementById('chat-messages');
+if(msgContainer)msgContainer.scrollTop=msgContainer.scrollHeight;
 }
 }
 
