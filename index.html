@@ -29,7 +29,7 @@ body{background:#0a0a0a;color:#e0e0e0;height:100vh;overflow:hidden}
 .category-header{font-size:10px;letter-spacing:1.5px;color:#555;padding:6px 10px;display:flex;justify-content:space-between;align-items:center;text-transform:uppercase;cursor:default;font-weight:600;border-radius:6px;transition:background .12s,border-color .12s;border:1px solid transparent}
 .category-header.draggable-item{cursor:grab}
 .category-header.draggable-item:active{cursor:grabbing}
-.category-channels{padding-left:2px;display:flex;flex-direction:column;gap:2px;min-height:8px}
+.category-channels{padding-left:2px;display:flex;flex-direction:column;gap:2px;min-height:12px}
 .channel-item{padding:8px 12px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:6px;border-radius:8px;color:#888;transition:all .12s;border:1px solid transparent}
 .channel-item.draggable-item{cursor:grab}
 .channel-item.draggable-item:active{cursor:grabbing}
@@ -951,13 +951,15 @@ e.preventDefault();
 e.stopPropagation();
 el.classList.remove('drag-over');
 if(!dragData||!isAdmin)return;
-const rect=el.getBoundingClientRect();
-const midY=rect.top+rect.height/2;
-const insertBefore=e.clientY<midY;
+
 if(dragData.type==='category'&&type==='category'&&dragData.id!==id){
+const rect=el.getBoundingClientRect();
+const insertBefore=e.clientY<(rect.top+rect.height/2);
 await reorderCategories(dragData.id,id,insertBefore);
 }else if(dragData.type==='channel'){
 if(type==='channel'){
+const rect=el.getBoundingClientRect();
+const insertBefore=e.clientY<(rect.top+rect.height/2);
 await moveChannel(dragData.id,dragData.catId,catId,id,insertBefore);
 }else if(type==='category'){
 await moveChannel(dragData.id,dragData.catId,id,null,false);
@@ -1172,63 +1174,54 @@ document.getElementById('back-to-forum-list').onclick=()=>{activeForumPostId=nul
 document.getElementById('channel-gear-btn').onclick=e=>{e.stopPropagation();if(!isAdmin){alert("ACCESS DENIED — ADMIN ONLY");return}openChannelSettingsModal(currentChannelCatKey,currentChannel);};
 document.querySelectorAll('[data-delc]').forEach(btn=>{
 btn.onclick=async()=>{
-if(!confirm("Delete this comment?"))return;
+if(!confirm("Delete comment?"))return;
 await fetch(`${FIREBASE_URL}/forum_comments/${currentChannel}/${activeForumPostId}/${btn.dataset.delc}.json?auth=${FIREBASE_TOKEN}`,{method:'DELETE'});
 renderForumView();
 };
 });
 bindChatForm();
-const msgContainer=document.getElementById('chat-messages');
-if(msgContainer)msgContainer.scrollTop=msgContainer.scrollHeight;
 }
 }
 
 function openCreateForumPostModal(){
 const modal=document.createElement('div');modal.className='modal-overlay';
-modal.innerHTML=`<div class="modal-card" style="width:460px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px"><h3>CREATE PUBLICATION</h3><button id="close-forum-modal" style="background:none;border:none;color:#666;cursor:pointer;font-size:16px">X</button></div><div class="input-group"><label>TITLE</label><input type="text" id="forum-post-title-input" placeholder="Title..." maxlength="100"></div><div class="input-group"><label>CONTENT</label><textarea id="forum-post-content-input" rows="5" placeholder="Content..." maxlength="2000"></textarea></div><div class="modal-buttons"><button class="admin-panel-btn" id="submit-forum-post-btn">PUBLISH</button></div></div>`;
+modal.innerHTML=`<div class="modal-card" style="width:480px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px"><h3>CREATE PUBLICATION</h3><button id="close-forum-modal" style="background:none;border:none;color:#666;cursor:pointer;font-size:16px">X</button></div><div class="input-group"><label>TITLE</label><input type="text" id="forum-post-title-inp" maxlength="100" autocomplete="off"></div><div class="input-group"><label>CONTENT</label><textarea id="forum-post-text-inp" rows="5" maxlength="2000"></textarea></div><div class="modal-buttons"><button class="admin-panel-btn" id="submit-forum-post-btn">PUBLISH</button></div></div>`;
 document.getElementById('modal-container').appendChild(modal);
 modal.querySelector('#close-forum-modal').onclick=()=>modal.remove();
 modal.querySelector('#submit-forum-post-btn').onclick=async()=>{
-const title=modal.querySelector('#forum-post-title-input').value.trim();
-const text=modal.querySelector('#forum-post-content-input').value.trim();
-if(!title||!text){alert("Fill title and content.");return;}
+const title=modal.querySelector('#forum-post-title-inp').value.trim();
+const text=modal.querySelector('#forum-post-text-inp').value.trim();
+if(!title||!text){alert("Fill in all fields.");return;}
+const avatar=getStableAvatar(currentUser,cachedAvatar);
 try{
-await fetch(`${FIREBASE_URL}/forum_posts/${currentChannel}.json?auth=${FIREBASE_TOKEN}`,{method:'POST',body:JSON.stringify({title,text,user:currentUser,avatar:getStableAvatar(currentUser,cachedAvatar),time:Date.now()})});
+await fetch(`${FIREBASE_URL}/forum_posts/${currentChannel}.json?auth=${FIREBASE_TOKEN}`,{method:'POST',body:JSON.stringify({user:currentUser,avatar,title,text,time:Date.now()})});
 modal.remove();renderForumView();
-}catch(e){alert("Failed to create publication.")}
+}catch(e){alert("Failed to create publication.");}
 };
 }
 
-async function openDM(targetUser){
-currentChannel='dm_'+[currentUser,targetUser].sort().join('_');
-currentChannelType='text';
-channelCooldown=0;
-activeForumPostId=null;
-displayedCount=MSG_PAGE_SIZE;
-activeChannelTitle.textContent=`@ ${targetUser}`;
-channelTopic.textContent='Direct Message';
-const inp=document.getElementById('message-input');
-if(inp)inp.placeholder=`Message @${targetUser}`;
-lastMessagesHash="";
-renderTextView();
+function escapeHtml(str){
+return(str||'').replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
 }
 
 function parseMarkdown(text){
-return text
-.replace(/\*\*(.+?)\*\*/g,'<span class="markdown-bold">$1</span>')
-.replace(/\*(.+?)\*/g,'<span class="markdown-italic">$1</span>')
-.replace(/`(.+?)`/g,'<span class="markdown-code">$1</span>')
-.replace(/\|\|(.+?)\|\|/g,'<span class="markdown-spoiler">$1</span>')
-.replace(/@(\w+)/g,'<span class="mention">@$1</span>');
+let escaped=escapeHtml(text);
+escaped=escaped.replace(/```([\s\S]*?)```/g,'<span class="markdown-code">$1</span>');
+escaped=escaped.replace(/`([^`]+)`/g,'<span class="markdown-code">$1</span>');
+escaped=escaped.replace(/\*\*([^*]+)\*\*/g,'<span class="markdown-bold">$1</span>');
+escaped=escaped.replace(/\*([^*]+)\*/g,'<span class="markdown-italic">$1</span>');
+escaped=escaped.replace(/\|\|([^|]+)\|\|/g,'<span class="markdown-spoiler" onclick="this.style.color=\'#ccc\'">$1</span>');
+return escaped;
 }
 
-function escapeHtml(str){return(str||'').replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;")}
 function generateDefaultAvatar(name){
-const canvas=document.createElement('canvas');canvas.width=80;canvas.height=80;
+const canvas=document.createElement('canvas');canvas.width=100;canvas.height=100;
 const ctx=canvas.getContext('2d');
-ctx.fillStyle='#1a1a1a';ctx.beginPath();ctx.arc(40,40,40,0,Math.PI*2);ctx.fill();
-ctx.fillStyle='#ccc';ctx.font='bold 32px Segoe UI';ctx.textAlign='center';ctx.textBaseline='middle';
-ctx.fillText((name||'U').charAt(0).toUpperCase(),40,42);
+let hash=0;for(let i=0;i<name.length;i++)hash=name.charCodeAt(i)+((hash<<5)-hash);
+let color='#';for(let i=0;i<3;i++){let value=(hash>>(i*8))&0xFF;color+=('00'+value.toString(16)).slice(-2);}
+ctx.fillStyle=color;ctx.fillRect(0,0,100,100);
+ctx.fillStyle='#ffffff';ctx.font='bold 45px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+ctx.fillText(name.charAt(0).toUpperCase(),50,50);
 return canvas.toDataURL();
 }
 </script>
